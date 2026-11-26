@@ -145,10 +145,10 @@ def run_separation_job(job_id: str, input_path: Path, model_name: str, bit_depth
         model_sr = model.samplerate
         device = get_device()
 
-        # Resample to model_sr for inference if needed
+        # Resample to model_sr for inference if needed (64-zero brickwall sinc)
         if orig_sr != model_sr:
             job["stage"] = f"Resampling {orig_sr} Hz -> {model_sr} Hz for neural inference..."
-            mix_in = julius.resample_frac(wav_stereo, orig_sr, model_sr, zeros=32, rolloff=0.955)
+            mix_in = julius.resample_frac(wav_stereo, orig_sr, model_sr, zeros=64, rolloff=0.96)
         else:
             mix_in = wav_stereo
 
@@ -221,16 +221,39 @@ def run_separation_job(job_id: str, input_path: Path, model_name: str, bit_depth
         vocals_tensor = None
         non_vocals_sum = None
 
+        # Preserve ultrasonic band (> model_sr/2) when source is true hi-res (> 44.1 kHz)
+        ultrasonic_band = None
+        if orig_sr > model_sr:
+            base_reconstructed = julius.resample_frac(mix_in, model_sr, orig_sr, zeros=64, rolloff=0.96)
+            if base_reconstructed.shape[1] >= orig_samples:
+                ultrasonic_band = wav_stereo - base_reconstructed[:, :orig_samples]
+            else:
+                pad_b = torch.zeros((base_reconstructed.shape[0], orig_samples - base_reconstructed.shape[1]))
+                ultrasonic_band = wav_stereo - torch.cat([base_reconstructed, pad_b], dim=1)
+
+        stem_energies = []
+        resampled_stems = []
         for idx, stem_name in enumerate(model.sources):
             stem_wav = sources[idx]
             if orig_sr != model_sr:
-                stem_wav = julius.resample_frac(stem_wav, model_sr, orig_sr, zeros=32, rolloff=0.955)
+                stem_wav = julius.resample_frac(stem_wav, model_sr, orig_sr, zeros=64, rolloff=0.96)
             # Match exact original sample count
             if stem_wav.shape[1] > orig_samples:
                 stem_wav = stem_wav[:, :orig_samples]
             elif stem_wav.shape[1] < orig_samples:
                 pad = torch.zeros((stem_wav.shape[0], orig_samples - stem_wav.shape[1]))
                 stem_wav = torch.cat([stem_wav, pad], dim=1)
+            resampled_stems.append((stem_name, stem_wav))
+            if ultrasonic_band is not None:
+                stem_energies.append((stem_wav ** 2).mean(dim=0, keepdim=True))
+
+        if ultrasonic_band is not None and stem_energies:
+            total_e = torch.stack(stem_energies, dim=0).sum(dim=0) + 1e-12
+            for i, (stem_name, stem_wav) in enumerate(resampled_stems):
+                w_ultra = stem_energies[i] / total_e
+                resampled_stems[i] = (stem_name, stem_wav + w_ultra * ultrasonic_band)
+
+        for stem_name, stem_wav in resampled_stems:
 
             if orig_channels == 1:
                 stem_out = stem_wav.mean(dim=0, keepdim=True)
@@ -381,14 +404,15 @@ def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, t
     data, _ = sf.read(str(src_wav), dtype="float32", always_2d=True)
     if out_sr != orig_sr:
         t_wav = torch.from_numpy(data.T)
-        t_wav = julius.resample_frac(t_wav, orig_sr, out_sr, zeros=32, rolloff=0.955)
+        t_wav = julius.resample_frac(t_wav, orig_sr, out_sr, zeros=64, rolloff=0.96)
         data = t_wav.numpy().T
 
-    # Prevent digital clipping on fixed-point / lossy exports while preserving 32-bit float masters
+    # Use float64 precision for headroom scaling & dithering before quantization
+    data64 = data.astype(np.float64)
     if not (fmt == "wav" and safe_br == "32f"):
-        peak = float(np.max(np.abs(data)))
+        peak = float(np.max(np.abs(data64)))
         if peak > 0.99:
-            data = data * (0.99 / peak)
+            data64 = data64 * (0.99 / peak)
 
     if fmt in ("wav", "flac"):
         if fmt == "wav":
@@ -399,10 +423,11 @@ def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, t
         # Apply subtle TPDF dither before 16-bit quantization for smooth low-level tails
         if subtype == "PCM_16":
             rng = np.random.default_rng()
-            dither = (rng.random(data.shape, dtype=np.float32) - rng.random(data.shape, dtype=np.float32)) / 32768.0
-            data = np.clip(data + dither, -1.0, 1.0)
+            dither = (rng.random(data64.shape) - rng.random(data64.shape)) / 32768.0
+            data64 = np.clip(data64 + dither, -1.0, 1.0)
 
-        sf.write(str(export_path), data, out_sr, subtype=subtype)
+        out_data = data64.astype(np.float32) if subtype == "FLOAT" else data64
+        sf.write(str(export_path), out_data, out_sr, subtype=subtype)
     else:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         codec_map = {
@@ -415,7 +440,7 @@ def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, t
 
         temp_wav = export_path.with_suffix(".tmp_master.wav")
         try:
-            sf.write(str(temp_wav), data, out_sr, subtype="FLOAT")
+            sf.write(str(temp_wav), data64.astype(np.float32), out_sr, subtype="FLOAT")
             cmd = [
                 ffmpeg_exe,
                 "-y",
@@ -516,7 +541,7 @@ def download_combined_stems(
     mix_data = None
     orig_sr = 44100
     for p in stem_paths:
-        data, orig_sr = sf.read(str(p), dtype="float32", always_2d=True)
+        data, orig_sr = sf.read(str(p), dtype="float64", always_2d=True)
         mix_data = data if mix_data is None else (mix_data + data)
 
     peak = float(np.max(np.abs(mix_data)))
@@ -527,7 +552,7 @@ def download_combined_stems(
     exports_dir.mkdir(parents=True, exist_ok=True)
     stem_slug = "-".join(stem_names)
     combined_wav = exports_dir / f"combined_{stem_slug}_master.wav"
-    sf.write(str(combined_wav), mix_data, orig_sr, subtype="FLOAT")
+    sf.write(str(combined_wav), mix_data.astype(np.float32), orig_sr, subtype="FLOAT")
 
     media_type, ext = _VALID_FORMATS[fmt]
     if fmt == "wav" and target_sr == 0 and safe_br == "32f":
