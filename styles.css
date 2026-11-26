@@ -311,17 +311,17 @@ body {
 .btn-sm { padding: 7px 13px; font-size: .78rem; }
 
 .btn-primary {
-  background: linear-gradient(180deg, #6b6ff8, #5557ec);
+  background: var(--c-accent);
   color: #fff;
   box-shadow: 0 2px 10px rgba(99,102,241,.28);
 }
-.btn-primary:hover { filter: brightness(1.1); box-shadow: 0 4px 18px rgba(99,102,241,.4); }
+.btn-primary:hover { background: var(--c-accent-h); box-shadow: 0 4px 18px rgba(99,102,241,.4); }
 
 .btn-accent {
-  background: linear-gradient(135deg, #6366f1, #9333ea);
+  background: #7c3aed;
   color: #fff;
 }
-.btn-accent:hover { filter: brightness(1.1); box-shadow: 0 4px 18px rgba(147,51,234,.38); }
+.btn-accent:hover { background: #8b5cf6; box-shadow: 0 4px 18px rgba(124,58,237,.38); }
 
 .btn-ghost {
   background: var(--c-elevated);
@@ -423,11 +423,11 @@ input[type="range"]::-moz-range-thumb {
 
 .t-play {
   width: 42px; height: 42px;
-  background: linear-gradient(180deg, #6b6ff8, #5557ec);
+  background: var(--c-accent);
   border-color: var(--c-accent);
   box-shadow: 0 4px 14px var(--c-accent-g);
 }
-.t-play:hover { filter: brightness(1.1); }
+.t-play:hover { background: var(--c-accent-h); border-color: var(--c-accent-h); }
 
 .transport-timeline {
   display: flex; align-items: center; gap: 12px; flex: 1; min-width: 220px;
