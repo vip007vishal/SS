@@ -134,6 +134,99 @@
     },
   };
 
+  // =========================================================================
+  // Custom Designed Dropdowns
+  // =========================================================================
+  const CHEVRON_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const CHECK_SVG = `<svg class="rx-select-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  function closeAllCustomSelects(exceptEl = null) {
+    document.querySelectorAll(".rx-select.open").forEach((el) => {
+      if (el !== exceptEl) {
+        el.classList.remove("open");
+        el.querySelector(".rx-select-trigger")?.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".rx-select")) closeAllCustomSelects();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllCustomSelects();
+  });
+
+  function enhanceSelect(selectEl) {
+    if (!selectEl || selectEl.dataset.rxEnhanced) return;
+    selectEl.dataset.rxEnhanced = "1";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "rx-select";
+    selectEl.parentNode.insertBefore(wrapper, selectEl);
+    wrapper.appendChild(selectEl);
+    selectEl.classList.add("rx-select-native");
+    selectEl.tabIndex = -1;
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "rx-select-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.innerHTML = `<span class="rx-select-label"></span><span class="rx-select-arrow" aria-hidden="true">${CHEVRON_SVG}</span>`;
+
+    const menu = document.createElement("div");
+    menu.className = "rx-select-menu";
+    menu.setAttribute("role", "listbox");
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+
+    const labelSpan = trigger.querySelector(".rx-select-label");
+
+    const syncUI = () => {
+      const opts = Array.from(selectEl.options);
+      const selectedOpt = opts[selectEl.selectedIndex] || opts[0];
+      labelSpan.textContent = selectedOpt ? selectedOpt.textContent : "";
+
+      menu.innerHTML = "";
+      for (const opt of opts) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "rx-select-opt" + (opt.value === selectEl.value ? " selected" : "");
+        item.setAttribute("role", "option");
+        item.setAttribute("aria-selected", opt.value === selectEl.value ? "true" : "false");
+        item.innerHTML = `<span>${opt.textContent}</span>${CHECK_SVG}`;
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (selectEl.value !== opt.value) {
+            selectEl.value = opt.value;
+            selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          syncUI();
+          closeAllCustomSelects();
+        });
+        menu.appendChild(item);
+      }
+    };
+
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const willOpen = !wrapper.classList.contains("open");
+      closeAllCustomSelects(wrapper);
+      wrapper.classList.toggle("open", willOpen);
+      trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+
+    selectEl.addEventListener("change", syncUI);
+    const obs = new MutationObserver(syncUI);
+    obs.observe(selectEl, { childList: true, subtree: true });
+    selectEl._rxSync = syncUI;
+    syncUI();
+  }
+
+  [modeSelect, exportFormat, exportQuality, exportSampleRate].forEach(enhanceSelect);
+
   function refreshExportQualityOptions() {
     const fmt = exportFormat.value;
     const cfg = QUALITY_OPTIONS[fmt] || QUALITY_OPTIONS.wav;
@@ -141,6 +234,7 @@
     exportQuality.innerHTML = cfg.options
       .map((o) => `<option value="${o.value}">${o.text}</option>`)
       .join("");
+    exportQuality._rxSync?.();
     const extUpper = fmt.toUpperCase();
     downloadAllBtn.textContent = `Download Selected (${extUpper}s)`;
     downloadCombinedBtn.textContent = `Download Combined (${extUpper})`;
@@ -420,9 +514,24 @@
   // =========================================================================
   // Neural Separation via Python Demucs Backend
   // =========================================================================
+  async function fetchWithRetry(url, options = {}, maxRetries = 5, baseDelayMs = 500) {
+    let lastErr;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fetch(url, options);
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, baseDelayMs * (attempt + 1)));
+        }
+      }
+    }
+    throw lastErr;
+  }
+
   async function pollAndLoadJob(jobId) {
     while (true) {
-      const pollRes = await fetch(`/api/jobs/${jobId}`);
+      const pollRes = await fetchWithRetry(`/api/jobs/${jobId}`);
       if (pollRes.status === 404) {
         const notFound = new Error("Job not found or expired.");
         notFound.isNotFound = true;
@@ -517,6 +626,7 @@
     sourceFileName = stripExtension(saved.fileName || "track");
     if (saved.model && modeSelect.querySelector(`option[value="${saved.model}"]`)) {
       modeSelect.value = saved.model;
+      modeSelect._rxSync?.();
     }
 
     dropzone.hidden = true;
@@ -563,7 +673,7 @@
         90 + ((i + 1) / stemItems.length) * 9,
         `Loading ${label} (${i + 1}/${stemItems.length}) into mixer...`
       );
-      const res = await fetch(item.url);
+      const res = await fetchWithRetry(item.url);
       if (!res.ok) throw new Error(`Failed to fetch stem ${item.id}`);
       const buf = await res.arrayBuffer();
       const decoded = await ctx.decodeAudioData(buf);
