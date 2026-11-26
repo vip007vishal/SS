@@ -170,23 +170,43 @@ body {
 .hero-line-1 {
   font-weight: 900;
   color: #F3F5F9;
+  letter-spacing: 0.015em;
 }
 
 .hero-line-2 {
   font-weight: 700;
-  color: #C7D1DE;
+  color: #B8C4D4;
+  letter-spacing: 0.03em;
 }
 
 .hero-accent {
-  color: #568FE8;
+  color: #6CA2F7;
+  font-weight: 800;
 }
 
 .landing-tagline {
-  font-family: "Inter", sans-serif;
-  font-size: clamp(13px, 1.3vw, 15.5px);
-  font-weight: 400;
-  color: var(--c-text-2);
-  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(17px, 1.75vw, 22px);
+  font-weight: 500;
+  color: #CBD5E1;
+  letter-spacing: 0.025em;
+  line-height: 1.2;
+}
+
+.landing-tagline::before,
+.landing-tagline::after {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.45));
+}
+
+.landing-tagline::after {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.45), transparent);
 }
 
 .landing-upload-wrap {
@@ -242,23 +262,27 @@ body {
 .dz-copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-width: 440px;
+  align-items: center;
+  gap: 7px;
+  max-width: 430px;
 }
 
 .dz-title {
   font-family: "Manrope", "Inter", sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: #F3F5F9;
   line-height: 1.25;
 }
 
 .dz-sub {
-  font-size: 13px;
-  color: var(--c-text-2);
-  line-height: 1.5;
+  font-family: "Inter", sans-serif;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #96A4B5;
+  line-height: 1.6;
+  text-wrap: balance;
 }
 
 .dz-actions {
