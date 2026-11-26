@@ -7,8 +7,8 @@
   <link rel="icon" type="image/png" href="resonix.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
 
@@ -16,18 +16,66 @@
        SCREEN 01 — AUDIO IMPORT LANDING
        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <main class="landing-screen" id="landingScreen">
+    <!-- Layered Studio Soundscape Background -->
+    <div class="landing-bg" aria-hidden="true">
+      <div class="landing-glow"></div>
+      <svg class="soundscape-svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="waveFadeBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#568FE8" stop-opacity="0" />
+            <stop offset="25%" stop-color="#568FE8" stop-opacity="0.22" />
+            <stop offset="50%" stop-color="#80AEF1" stop-opacity="0.34" />
+            <stop offset="75%" stop-color="#568FE8" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="#568FE8" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="waveFadeSubtle" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#A6B1BF" stop-opacity="0" />
+            <stop offset="50%" stop-color="#A6B1BF" stop-opacity="0.14" />
+            <stop offset="100%" stop-color="#A6B1BF" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+
+        <!-- Vinyl / acoustic arc grooves -->
+        <g fill="none" stroke="rgba(86, 143, 232, 0.055)" stroke-width="1">
+          <circle cx="800" cy="450" r="340" />
+          <circle cx="800" cy="450" r="430" />
+          <circle cx="800" cy="450" r="530" />
+          <circle cx="800" cy="450" r="640" />
+        </g>
+
+        <!-- Subtle horizon grid line -->
+        <line x1="0" y1="540" x2="1600" y2="540" stroke="rgba(255,255,255,0.035)" stroke-width="1" />
+
+        <!-- Flowing layered audio waveforms -->
+        <g class="soundscape-waves" fill="none">
+          <path d="M-120,540 C120,420 260,640 480,520 C700,400 840,650 1060,510 C1280,370 1440,610 1720,520" stroke="url(#waveFadeBlue)" stroke-width="1.8" />
+          <path d="M-120,540 C140,610 300,450 520,555 C740,660 900,430 1120,545 C1340,660 1480,460 1720,540" stroke="url(#waveFadeBlue)" stroke-width="1.2" opacity="0.7" />
+          <path d="M-120,540 C180,480 340,590 560,505 C780,420 920,600 1140,515 C1360,430 1500,580 1720,530" stroke="url(#waveFadeSubtle)" stroke-width="1" />
+          <path d="M-120,470 C180,390 380,550 620,460 C860,370 1020,540 1260,455 C1460,385 1580,500 1720,465" stroke="url(#waveFadeSubtle)" stroke-width="0.9" opacity="0.55" />
+        </g>
+      </svg>
+      <div class="landing-vignette"></div>
+    </div>
+
     <div class="landing-inner">
       <div class="landing-brand">
         <img src="resonix.png" alt="RESONIX" class="landing-logo" />
-        <h1 class="landing-hero-title">AI-Powered Audio Stem Separation Studio</h1>
       </div>
+
+      <header class="landing-hero">
+        <h1 class="landing-hero-title">
+          <span class="hero-line-1">BREAK THE MIX.</span>
+          <span class="hero-line-2">REVEAL <span class="hero-accent">EVERY LAYER.</span></span>
+        </h1>
+        <p class="landing-tagline">Every instrument. Every voice. Independently.</p>
+      </header>
 
       <section class="landing-upload-wrap" id="uploadPanel" aria-label="Audio Import">
         <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden />
 
         <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Import audio file">
           <div class="dz-icon" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
@@ -35,8 +83,8 @@
           </div>
 
           <div class="dz-copy">
-            <h2 class="dz-title">Separate your sound. Explore every layer.</h2>
-            <p class="dz-sub">Upload an audio track and isolate its individual musical components with AI-powered stem separation.</p>
+            <h2 class="dz-title">Bring your music into focus.</h2>
+            <p class="dz-sub">Drop an audio file here or browse your device to begin separating the individual elements of your track.</p>
           </div>
 
           <div class="dz-actions">
@@ -44,7 +92,7 @@
             <button class="btn btn-secondary btn-lg" id="demoBtn" type="button">Load Demo</button>
           </div>
 
-          <p class="dz-formats">Supported formats: MP3, WAV, FLAC, OGG, M4A, AAC</p>
+          <p class="dz-formats mono">MP3 · WAV · FLAC · OGG · M4A · AAC</p>
         </div>
       </section>
     </div>
