@@ -35,6 +35,15 @@ app.add_middleware(
 _MODEL_CACHE: Dict[str, Any] = {}
 _MODEL_LOCK = threading.Lock()
 _JOBS: Dict[str, Dict[str, Any]] = {}
+_CLEANUP_TIMERS: Dict[str, threading.Timer] = {}
+_CLEANUP_LOCK = threading.Lock()
+
+
+def _cancel_scheduled_cleanup(job_id: str):
+    with _CLEANUP_LOCK:
+        timer = _CLEANUP_TIMERS.pop(job_id, None)
+        if timer:
+            timer.cancel()
 
 
 def get_device() -> str:
@@ -292,10 +301,38 @@ async def split_audio(
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
+    _cancel_scheduled_cleanup(job_id)
     job = _JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return JSONResponse(job)
+
+
+@app.post("/api/jobs/{job_id}/resplit")
+def resplit_job(job_id: str, model: str = Form("htdemucs")):
+    _cancel_scheduled_cleanup(job_id)
+    job = _JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job_dir = JOBS_DIR / job_id
+    inputs = list(job_dir.glob("input.*"))
+    if not inputs:
+        raise HTTPException(status_code=404, detail="Original audio file not found")
+
+    job["status"] = "queued"
+    job["progress"] = 0
+    job["stage"] = "Queued for Demucs neural separation..."
+    job["stems"] = []
+    job["error"] = None
+    job["cancelled"] = False
+
+    thread = threading.Thread(
+        target=run_separation_job,
+        args=(job_id, inputs[0], model, "32f"),
+        daemon=True,
+    )
+    thread.start()
+    return {"job_id": job_id}
 
 
 _VALID_FORMATS = {
@@ -372,6 +409,7 @@ def download_stem(
     if not re.match(r"^[a-zA-Z0-9_-]+$", stem_name):
         raise HTTPException(status_code=400, detail="Invalid stem name")
 
+    _cancel_scheduled_cleanup(job_id)
     fmt, safe_br, target_sr = _sanitize_export_params(fmt, bitrate, sr)
     stem_path = JOBS_DIR / job_id / "stems" / f"{stem_name}.wav"
     if not stem_path.exists():
@@ -462,6 +500,7 @@ def download_combined_stems(
 def _delete_job_dir(job_id: str):
     if not re.match(r"^[a-fA-F0-9]+$", job_id):
         raise HTTPException(status_code=400, detail="Invalid job ID")
+    _cancel_scheduled_cleanup(job_id)
     job = _JOBS.get(job_id)
     if job and job.get("status") in ("queued", "processing"):
         job["cancelled"] = True
@@ -472,6 +511,21 @@ def _delete_job_dir(job_id: str):
         shutil.rmtree(job_dir, ignore_errors=True)
     _JOBS.pop(job_id, None)
     return {"ok": True, "status": "deleted"}
+
+
+@app.post("/api/jobs/{job_id}/schedule-cleanup")
+def schedule_cleanup_job(job_id: str):
+    if not re.match(r"^[a-fA-F0-9]+$", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    with _CLEANUP_LOCK:
+        old = _CLEANUP_TIMERS.pop(job_id, None)
+        if old:
+            old.cancel()
+        timer = threading.Timer(12.0, _delete_job_dir, args=(job_id,))
+        timer.daemon = True
+        timer.start()
+        _CLEANUP_TIMERS[job_id] = timer
+    return {"ok": True, "status": "delayed_cleanup_scheduled"}
 
 
 @app.post("/api/jobs/{job_id}/cleanup")

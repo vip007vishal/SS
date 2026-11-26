@@ -227,10 +227,29 @@
     if (stageText) progressStage.textContent = stageText;
   }
 
-  function cleanupCurrentJob(useBeacon = false) {
+  const SESSION_KEY = "sonic_split_job";
+
+  function saveJobSession(jobId, fileName, model) {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, fileName, model }));
+    } catch (_) {}
+  }
+
+  function clearJobSession() {
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch (_) {}
+  }
+
+  function cleanupCurrentJob(useBeacon = false, delayed = false) {
     if (!currentJobId) return;
-    const url = `/api/jobs/${currentJobId}/cleanup`;
-    currentJobId = null;
+    const jobId = currentJobId;
+    const endpoint = delayed ? "schedule-cleanup" : "cleanup";
+    const url = `/api/jobs/${jobId}/${endpoint}`;
+    if (!delayed) {
+      currentJobId = null;
+      clearJobSession();
+    }
     if (useBeacon && navigator.sendBeacon) {
       navigator.sendBeacon(url);
     } else {
@@ -401,23 +420,64 @@
   // =========================================================================
   // Neural Separation via Python Demucs Backend
   // =========================================================================
+  async function pollAndLoadJob(jobId) {
+    while (true) {
+      const pollRes = await fetch(`/api/jobs/${jobId}`);
+      if (pollRes.status === 404) {
+        const notFound = new Error("Job not found or expired.");
+        notFound.isNotFound = true;
+        throw notFound;
+      }
+      if (!pollRes.ok) throw new Error("Lost connection to separation job.");
+      const job = await pollRes.json();
+
+      setProgress(job.progress || 0, job.stage || "Processing...");
+
+      if (job.meta) {
+        metaRate.textContent = `${job.meta.sampleRate} Hz`;
+        metaChannels.textContent =
+          job.meta.channels === 1 ? "1 (Mono)" : `${job.meta.channels} (Stereo)`;
+        metaDuration.textContent = formatTime(job.meta.duration);
+        sourceDuration = job.meta.duration;
+        totalTimeEl.textContent = formatTime(job.meta.duration);
+      }
+
+      if (job.status === "error") {
+        throw new Error(job.error || "Neural separation failed.");
+      }
+
+      if (job.status === "done") {
+        setProgress(96, "Loading lossless WAV stems into studio mixer...");
+        await loadSeparatedStems(job.stems, job.meta?.sampleRate);
+        break;
+      }
+
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+
   async function runSeparation() {
-    if (!currentFile) return;
+    if (!currentFile && !currentJobId) return;
     stopPlayback();
 
     splitBtn.disabled = true;
     resetBtn.disabled = true;
     mixerPanel.hidden = true;
-    setProgress(3, "Uploading audio to Demucs neural backend...");
+    setProgress(3, currentFile ? "Uploading audio to Demucs neural backend..." : "Re-running Demucs neural separation...");
     engineStatus.textContent = "Uploading & Splitting...";
 
     try {
       const formData = new FormData();
-      formData.append("file", currentFile);
       formData.append("model", modeSelect.value);
-      formData.append("bit_depth", "32f");
+      let endpoint = "/api/split";
+      if (currentFile) {
+        formData.append("file", currentFile);
+        formData.append("bit_depth", "32f");
+      } else {
+        endpoint = `/api/jobs/${currentJobId}/resplit`;
+      }
 
-      const uploadRes = await fetch("/api/split", {
+      const uploadRes = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -428,35 +488,9 @@
 
       const { job_id } = await uploadRes.json();
       currentJobId = job_id;
+      saveJobSession(job_id, metaName.textContent || `${sourceFileName}.wav`, modeSelect.value);
 
-      // Poll job progress
-      while (true) {
-        await new Promise((r) => setTimeout(r, 600));
-        const pollRes = await fetch(`/api/jobs/${job_id}`);
-        if (!pollRes.ok) throw new Error("Lost connection to separation job.");
-        const job = await pollRes.json();
-
-        setProgress(job.progress || 0, job.stage || "Processing...");
-
-        if (job.meta) {
-          metaRate.textContent = `${job.meta.sampleRate} Hz`;
-          metaChannels.textContent =
-            job.meta.channels === 1 ? "1 (Mono)" : `${job.meta.channels} (Stereo)`;
-          metaDuration.textContent = formatTime(job.meta.duration);
-          sourceDuration = job.meta.duration;
-          totalTimeEl.textContent = formatTime(job.meta.duration);
-        }
-
-        if (job.status === "error") {
-          throw new Error(job.error || "Neural separation failed.");
-        }
-
-        if (job.status === "done") {
-          setProgress(96, "Loading lossless WAV stems into studio mixer...");
-          await loadSeparatedStems(job.stems, job.meta?.sampleRate);
-          break;
-        }
-      }
+      await pollAndLoadJob(job_id);
 
       progressWrap.hidden = true;
       engineStatus.textContent = "Demucs Stems Ready";
@@ -465,6 +499,50 @@
       progressWrap.hidden = true;
       engineStatus.textContent = "Separation Error";
       alert(`Separation failed: ${err.message}\n\nMake sure the Python server (server.py) is running.`);
+    } finally {
+      splitBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+  }
+
+  async function restoreSession() {
+    let saved = null;
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) saved = JSON.parse(raw);
+    } catch (_) {}
+    if (!saved || !saved.jobId) return;
+
+    currentJobId = saved.jobId;
+    sourceFileName = stripExtension(saved.fileName || "track");
+    if (saved.model && modeSelect.querySelector(`option[value="${saved.model}"]`)) {
+      modeSelect.value = saved.model;
+    }
+
+    dropzone.hidden = true;
+    controlsBar.hidden = false;
+    metaName.textContent = saved.fileName || "Restored Track";
+    metaRate.textContent = "Restoring...";
+    metaChannels.textContent = "Restoring...";
+    metaDuration.textContent = "Restoring...";
+    splitBtn.disabled = true;
+    resetBtn.disabled = true;
+    setProgress(92, "Restoring separated stems...");
+    engineStatus.textContent = "Restoring Session...";
+
+    try {
+      await pollAndLoadJob(saved.jobId);
+      progressWrap.hidden = true;
+      engineStatus.textContent = "Demucs Stems Ready";
+    } catch (err) {
+      console.warn("Could not restore previous session:", err);
+      clearJobSession();
+      currentJobId = null;
+      progressWrap.hidden = true;
+      controlsBar.hidden = true;
+      mixerPanel.hidden = true;
+      dropzone.hidden = false;
+      checkBackend();
     } finally {
       splitBtn.disabled = false;
       resetBtn.disabled = false;
@@ -919,7 +997,7 @@
   splitBtn.addEventListener("click", runSeparation);
 
   resetBtn.addEventListener("click", () => {
-    cleanupCurrentJob(false);
+    cleanupCurrentJob(false, false);
     stopPlayback();
     currentFile = null;
     stemBuffers = {};
@@ -931,8 +1009,15 @@
     checkBackend();
   });
 
-  window.addEventListener("pagehide", () => cleanupCurrentJob(true));
-  window.addEventListener("beforeunload", () => cleanupCurrentJob(true));
+  window.addEventListener("pagehide", () => cleanupCurrentJob(true, true));
+  window.addEventListener("beforeunload", () => cleanupCurrentJob(true, true));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && isPlaying && audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  });
+
+  restoreSession();
 
   playPauseBtn.addEventListener("click", () => {
     if (isPlaying) pausePlayback();
