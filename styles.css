@@ -621,11 +621,49 @@ body {
 }
 
 .stem-cb {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--c-accent);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface-2);
   cursor: pointer;
   justify-self: center;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.stem-cb:hover {
+  border-color: var(--c-accent);
+  background: var(--c-elevated);
+}
+
+.stem-cb:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+.stem-cb::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #0C1015;
+  border-bottom: 2px solid #0C1015;
+  transform: rotate(-45deg) scale(0);
+  margin-top: -1.5px;
+  transition: transform 120ms ease;
+}
+
+.stem-cb:checked {
+  background: var(--stem-color, var(--c-accent));
+  border-color: var(--stem-color, var(--c-accent));
+}
+
+.stem-cb:checked::after {
+  transform: rotate(-45deg) scale(1);
 }
 
 .stem-left {

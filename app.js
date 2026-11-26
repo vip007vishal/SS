@@ -1055,9 +1055,16 @@
     }
   }
 
+  const MASTER_ICON_PLAY = `<svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
+  const MASTER_ICON_PAUSE = `<svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+
   function updateTransportIcons() {
-    playIcon.hidden = isPlaying;
-    pauseIcon.hidden = !isPlaying;
+    if (playPauseBtn) {
+      playPauseBtn.innerHTML = isPlaying ? MASTER_ICON_PAUSE : MASTER_ICON_PLAY;
+      playPauseBtn.classList.toggle("playing", isPlaying);
+      playPauseBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+      playPauseBtn.title = isPlaying ? "Pause (Space)" : "Play (Space)";
+    }
     updateStemGains();
   }
 
