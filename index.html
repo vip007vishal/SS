@@ -3,80 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RESONIX — Neural Stem Separator</title>
+  <title>RESONIX — Professional Audio Stem Separation</title>
   <link rel="icon" type="image/png" href="resonix.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <div class="app-shell">
 
-    <!-- ── Header ──────────────────────────────────────────── -->
+    <!-- ── Application Header ──────────────────────────────── -->
     <header class="topbar">
       <div class="brand">
         <img src="resonix.png" alt="RESONIX" class="brand-logo" />
-        <p class="subtitle">Neural AI Stem Separator · Demucs HT · Studio Mixer</p>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <p class="subtitle">Professional Audio Stem Separation</p>
       </div>
     </header>
 
-    <!-- ── Upload Panel ──────────────────────────────────────── -->
-    <section class="card upload-card" id="uploadPanel">
+    <!-- ── Audio Import & Session Bar ──────────────────────── -->
+    <section class="panel upload-panel" id="uploadPanel" aria-label="Audio Import">
       <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden />
 
-      <!-- Drop Zone -->
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload audio file">
-        <div class="dz-inner">
-          <div class="dz-icon">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 18V5l12-2v13"/>
-              <circle cx="6" cy="18" r="3"/>
-              <circle cx="18" cy="16" r="3"/>
+      <!-- Import Surface -->
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Import audio file">
+        <div class="dz-content">
+          <div class="dz-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </div>
           <div class="dz-copy">
-            <span class="dz-title">Drop a track, or click to browse</span>
-            <span class="dz-sub">Demucs will immediately separate it into stems</span>
+            <h2 class="dz-title">Import Audio Track</h2>
+            <p class="dz-sub">Drop a file here or browse from disk for automatic neural stem separation · MP3, WAV, FLAC, OGG, M4A, AAC</p>
           </div>
-          <div class="dz-formats">
-            <span>MP3</span><span>WAV</span><span>FLAC</span><span>M4A</span><span>OGG</span><span>AAC</span>
-          </div>
-          <div class="dz-actions">
-            <button class="btn btn-primary" id="browseBtn" type="button">Choose File</button>
-            <button class="btn btn-ghost" id="demoBtn" type="button">Load Demo</button>
-          </div>
+        </div>
+        <div class="dz-actions">
+          <button class="btn btn-primary" id="browseBtn" type="button">Choose Audio File</button>
+          <button class="btn btn-secondary" id="demoBtn" type="button">Load Demo</button>
         </div>
       </div>
 
-      <!-- File Meta Strip (shown after load) -->
+      <!-- Track Metadata & Model Bar -->
       <div class="meta-strip" id="controlsBar" hidden>
-        <div class="meta-chip">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          <span id="metaName">—</span>
+        <div class="meta-group">
+          <div class="meta-item meta-file">
+            <span class="meta-label">Track</span>
+            <span class="meta-value" id="metaName">—</span>
+          </div>
+          <div class="meta-sep" aria-hidden="true"></div>
+          <div class="meta-item">
+            <span class="meta-label">Sample Rate</span>
+            <span class="meta-value mono" id="metaRate">—</span>
+          </div>
+          <div class="meta-sep" aria-hidden="true"></div>
+          <div class="meta-item">
+            <span class="meta-label">Channels</span>
+            <span class="meta-value mono" id="metaChannels">—</span>
+          </div>
+          <div class="meta-sep" aria-hidden="true"></div>
+          <div class="meta-item">
+            <span class="meta-label">Duration</span>
+            <span class="meta-value mono" id="metaDuration">—</span>
+          </div>
         </div>
-        <div class="meta-chip"><span class="chip-label">SR</span><span id="metaRate" class="mono">—</span></div>
-        <div class="meta-chip"><span class="chip-label">CH</span><span id="metaChannels" class="mono">—</span></div>
-        <div class="meta-chip"><span class="chip-label">DUR</span><span id="metaDuration" class="mono">—</span></div>
-        <div class="meta-sep"></div>
-        <label class="meta-sel">
-          <span>Model</span>
-          <select id="modeSelect">
-            <option value="htdemucs_6s" selected>6-Stem (Vocals · Drums · Bass · Guitar · Piano · Other)</option>
-            <option value="htdemucs_ft">4-Stem Studio Fine-Tuned (Highest Accuracy)</option>
-            <option value="htdemucs">4-Stem Fast</option>
-          </select>
-        </label>
-        <div class="meta-actions">
-          <button class="btn btn-accent btn-sm" id="splitBtn" type="button">↻ Re-Split</button>
-          <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">New File</button>
+
+        <div class="meta-controls">
+          <label class="meta-sel">
+            <span class="meta-label">Model</span>
+            <select id="modeSelect" aria-label="Separation Model">
+              <option value="htdemucs_6s" selected>HTDemucs 6-Stem (Vocals, Drums, Bass, Guitar, Piano, Other)</option>
+              <option value="htdemucs_ft">HTDemucs Fine-Tuned 4-Stem (Highest Accuracy)</option>
+              <option value="htdemucs">HTDemucs Fast 4-Stem</option>
+            </select>
+          </label>
+          <div class="meta-actions">
+            <button class="btn btn-secondary btn-sm" id="splitBtn" type="button">Re-Split</button>
+            <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">New File</button>
+          </div>
         </div>
       </div>
 
-      <!-- Progress -->
-      <div class="progress-card" id="progressWrap" hidden>
+      <!-- Processing Progress -->
+      <div class="progress-panel" id="progressWrap" hidden aria-live="polite">
         <div class="progress-top">
-          <span id="progressStage">Initializing…</span>
+          <span class="progress-stage" id="progressStage">Initializing…</span>
           <span class="mono progress-pct" id="progressPct">0%</span>
         </div>
         <div class="progress-track">
@@ -85,86 +99,99 @@
       </div>
     </section>
 
-    <!-- ── Mixer Panel ──────────────────────────────────────── -->
-    <section class="card mixer-card" id="mixerPanel" hidden>
+    <!-- ── Audio Workstation Mixer ─────────────────────────── -->
+    <section class="panel mixer-panel" id="mixerPanel" hidden aria-label="Stem Mixer">
 
-      <!-- Transport -->
+      <!-- Master Transport -->
       <div class="transport">
         <div class="transport-left">
-          <button class="t-btn t-play" id="playPauseBtn" title="Play / Pause (Space)">
-            <svg id="playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-            <svg id="pauseIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <button class="t-btn t-play" id="playPauseBtn" type="button" title="Play / Pause (Space)" aria-label="Play or Pause">
+            <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           </button>
-          <button class="t-btn" id="stopBtn" title="Stop">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+          <button class="t-btn" id="stopBtn" type="button" title="Stop" aria-label="Stop">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
           </button>
-          <button class="t-btn" id="loopBtn" title="Toggle Loop">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="t-btn" id="loopBtn" type="button" title="Toggle Loop" aria-label="Toggle Loop">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
               <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
             </svg>
           </button>
         </div>
+
         <div class="transport-timeline">
           <span class="mono timecode" id="currentTime">00:00.00</span>
           <div class="seek-wrap">
-            <input type="range" id="seekSlider" class="seek-slider" min="0" max="1000" value="0" aria-label="Playback position"/>
+            <input type="range" id="seekSlider" class="seek-slider" min="0" max="1000" value="0" aria-label="Playback position" />
           </div>
           <span class="mono timecode" id="totalTime">00:00.00</span>
         </div>
+
         <div class="transport-right">
           <div class="master-vol-group">
-            <span class="chip-label">MASTER VOL</span>
-            <input type="range" id="masterVolume" min="0" max="150" value="100" aria-label="Master volume"/>
+            <span class="meta-label">Master</span>
+            <input type="range" id="masterVolume" min="0" max="150" value="100" aria-label="Master volume" />
             <span class="mono vol-val" id="masterVolText">100%</span>
           </div>
         </div>
       </div>
 
-      <!-- Spectrum Visualizer -->
+      <!-- Spectrum Analyzer -->
       <div class="vis-wrap">
-        <canvas id="spectrumCanvas" height="56"></canvas>
-        <span class="vis-label mono">LIVE SPECTRUM</span>
+        <canvas id="spectrumCanvas" height="52"></canvas>
+        <span class="vis-label mono">Spectrum</span>
       </div>
 
-      <!-- Export Bar -->
-      <div class="export-bar">
-        <span class="chip-label">EXPORT</span>
-        <label class="exp-field">
-          <span>Format</span>
-          <select id="exportFormat">
-            <option value="wav" selected>WAV — Lossless</option>
-            <option value="flac">FLAC — Lossless Compressed</option>
-            <option value="mp3">MP3 — MPEG Layer-3</option>
-            <option value="m4a">M4A — AAC</option>
-            <option value="ogg">OGG — Vorbis</option>
-          </select>
-        </label>
-        <label class="exp-field">
-          <span id="exportQualityLabel">Bit Depth</span>
-          <select id="exportQuality"></select>
-        </label>
-        <label class="exp-field">
-          <span>Sample Rate</span>
-          <select id="exportSampleRate">
-            <option value="0" selected>Native Hz</option>
-            <option value="96000">96 kHz — Hi-Res</option>
-            <option value="48000">48 kHz — Broadcast</option>
-            <option value="44100">44.1 kHz — CD</option>
-            <option value="22050">22 kHz — Lo-Fi</option>
-          </select>
-        </label>
-        <div class="exp-divider"></div>
-        <button class="btn btn-ghost btn-sm" id="downloadAllBtn" type="button">↓ Selected (Individual)</button>
-        <button class="btn btn-primary btn-sm" id="downloadCombinedBtn" type="button">↓ Selected (Combined)</button>
+      <!-- Stem Mixer Strips -->
+      <div class="stems-section">
+        <div class="stems-header">
+          <span class="section-heading">Separated Stems</span>
+          <span class="section-hint">Select stems for batch or combined export · Click waveform to seek</span>
+        </div>
+        <div class="stems-list" id="stemsList"></div>
       </div>
 
-      <!-- Stem Tracks -->
-      <div class="stems-list" id="stemsList"></div>
+      <!-- Export Workspace -->
+      <div class="export-workspace">
+        <div class="export-header">
+          <span class="section-heading">Export</span>
+          <span class="section-hint">32-bit float internal processing rendered at native or custom sample rate</span>
+        </div>
+        <div class="export-bar">
+          <div class="export-fields">
+            <label class="exp-field">
+              <span class="meta-label">Format</span>
+              <select id="exportFormat" aria-label="Export Format">
+                <option value="wav" selected>WAV (Lossless)</option>
+                <option value="flac">FLAC (Lossless Compressed)</option>
+                <option value="mp3">MP3 (MPEG Layer-3)</option>
+                <option value="m4a">M4A (AAC)</option>
+                <option value="ogg">OGG (Vorbis)</option>
+              </select>
+            </label>
+            <label class="exp-field">
+              <span class="meta-label" id="exportQualityLabel">Bit Depth</span>
+              <select id="exportQuality" aria-label="Export Quality"></select>
+            </label>
+            <label class="exp-field">
+              <span class="meta-label">Sample Rate</span>
+              <select id="exportSampleRate" aria-label="Export Sample Rate">
+                <option value="0" selected>Native</option>
+                <option value="96000">96 kHz</option>
+                <option value="48000">48 kHz</option>
+                <option value="44100">44.1 kHz</option>
+                <option value="22050">22.05 kHz</option>
+              </select>
+            </label>
+          </div>
+          <div class="export-actions">
+            <button class="btn btn-secondary btn-sm" id="downloadAllBtn" type="button">Download Selected Stems</button>
+            <button class="btn btn-primary btn-sm" id="downloadCombinedBtn" type="button">Download Combined Mix</button>
+          </div>
+        </div>
+      </div>
 
-      <p class="dsp-note">
-        Decoded at native sample rate → Demucs HTDemucs neural separation → 32-bit float stems → converted to your chosen export format/bitrate at the exact original sample rate. All processing is local.
-      </p>
     </section>
 
   </div>

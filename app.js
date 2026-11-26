@@ -8,37 +8,37 @@
     vocals: {
       name: "Vocals",
       desc: "Lead & backing vocals isolated by Demucs",
-      color: "#c084fc",
+      color: "#A98EDB",
     },
     drums: {
       name: "Drums / Beats",
       desc: "Kick, snare, hi-hats, cymbals & percussion",
-      color: "#fb923c",
+      color: "#D88A52",
     },
     bass: {
       name: "Bass",
       desc: "Bass guitar, 808s & sub-bass frequencies",
-      color: "#38bdf8",
+      color: "#568FE8",
     },
     guitar: {
       name: "Guitar",
       desc: "Acoustic & electric guitar tracks",
-      color: "#facc15",
+      color: "#CCA24B",
     },
     piano: {
       name: "Piano / Keys",
       desc: "Piano, keys & melodic keyboard parts",
-      color: "#a78bfa",
+      color: "#8E84C9",
     },
     other: {
       name: "Instruments / Other",
       desc: "Synths, strings, brass & remaining accompaniment",
-      color: "#34d399",
+      color: "#4EA898",
     },
     instrumental: {
       name: "Instrumental (No Vocals)",
       desc: "Full backing mix with vocals removed",
-      color: "#f472b6",
+      color: "#C97896",
       defaultMuted: true,
     },
   };
@@ -236,8 +236,8 @@
       .join("");
     exportQuality._rxSync?.();
     const extUpper = fmt.toUpperCase();
-    downloadAllBtn.textContent = `Download Selected (${extUpper}s)`;
-    downloadCombinedBtn.textContent = `Download Combined (${extUpper})`;
+    downloadAllBtn.textContent = `Download Selected Stems (${extUpper})`;
+    downloadCombinedBtn.textContent = `Download Combined Mix (${extUpper})`;
     document.querySelectorAll('[data-action="download"] span').forEach((el) => {
       el.textContent = extUpper;
     });
@@ -746,7 +746,7 @@
         </div>
 
         <div class="stem-wave-wrap" title="Click to seek">
-          <canvas class="stem-wave-canvas" height="54"></canvas>
+          <canvas class="stem-wave-canvas" height="52"></canvas>
           <div class="stem-playhead"></div>
         </div>
 
@@ -1048,8 +1048,10 @@
       for (let i = 0; i < barCount; i++) {
         const val = freqData[i] / 255;
         const barH = val * (h - 6);
-        const hue = 250 - val * 70;
-        sCtx.fillStyle = `hsla(${hue}, 85%, 65%, 0.9)`;
+        const alpha = 0.35 + val * 0.6;
+        sCtx.fillStyle = val > 0.72
+          ? `rgba(118, 168, 242, ${alpha.toFixed(2)})`
+          : `rgba(86, 143, 232, ${alpha.toFixed(2)})`;
         sCtx.fillRect(i * barW, h - barH, Math.max(1, barW - 1), barH);
       }
 
@@ -1203,5 +1205,18 @@
       if (isPlaying) pausePlayback();
       else startPlayback(pauseOffset);
     }
+  });
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (mixerPanel.hidden || !activeStems.length) return;
+      for (const s of activeStems) {
+        const st = stemState[s.id];
+        const buf = stemBuffers[s.id];
+        if (st?.waveCanvas && buf) drawWaveform(st.waveCanvas, buf, s.color);
+      }
+    }, 150);
   });
 })();
