@@ -95,16 +95,16 @@
     wav: {
       label: "Bit Depth",
       options: [
-        { value: "32f", text: "32-bit Float (Studio Master)" },
-        { value: "24", text: "24-bit PCM (Pro Mastering)" },
-        { value: "16", text: "16-bit PCM (CD Standard)" },
+        { value: "32f", text: "32-bit Float (6144 kbps @ 96kHz)" },
+        { value: "24", text: "24-bit PCM (4608 kbps @ 96kHz)" },
+        { value: "16", text: "16-bit PCM (3072 kbps @ 96kHz)" },
       ],
     },
     flac: {
       label: "Bit Depth",
       options: [
-        { value: "24", text: "24-bit Lossless" },
-        { value: "16", text: "16-bit Lossless" },
+        { value: "24", text: "24-bit Lossless (~2900 kbps @ 96kHz)" },
+        { value: "16", text: "16-bit Lossless (~1900 kbps @ 96kHz)" },
       ],
     },
     dts: {
