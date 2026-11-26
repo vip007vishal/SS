@@ -274,13 +274,52 @@
   // =========================================================================
   // Backend Health Check
   // =========================================================================
+  const LOCAL_BACKEND_FALLBACK = "http://127.0.0.1:8000";
+  let API_BASE =
+    window.location.protocol === "file:" ||
+    ((window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") && window.location.port !== "8000")
+      ? LOCAL_BACKEND_FALLBACK
+      : "";
+
+  function apiUrl(path) {
+    if (!path) return path;
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  async function resolveApiBase() {
+    if (API_BASE) return API_BASE;
+    try {
+      const res = await fetch("/api/health");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ok) {
+          API_BASE = "";
+          return API_BASE;
+        }
+      }
+    } catch (_) {}
+    try {
+      const res = await fetch(`${LOCAL_BACKEND_FALLBACK}/api/health`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ok) {
+          API_BASE = LOCAL_BACKEND_FALLBACK;
+          return API_BASE;
+        }
+      }
+    } catch (_) {}
+    return API_BASE;
+  }
+
   function setEngineStatus(text) {
     if (engineStatus) engineStatus.textContent = text;
   }
 
   async function checkBackend() {
     try {
-      const res = await fetch("/api/health");
+      await resolveApiBase();
+      const res = await fetch(apiUrl("/api/health"));
       if (res.ok) {
         const data = await res.json();
         setEngineStatus(`Demucs AI Ready (${String(data.device || "cpu").toUpperCase()})`);
@@ -363,7 +402,7 @@
     if (!currentJobId) return;
     const jobId = currentJobId;
     const endpoint = delayed ? "schedule-cleanup" : "cleanup";
-    const url = `/api/jobs/${jobId}/${endpoint}`;
+    const url = apiUrl(`/api/jobs/${jobId}/${endpoint}`);
     if (!delayed) {
       currentJobId = null;
       clearJobSession();
@@ -557,8 +596,9 @@
   }
 
   async function pollAndLoadJob(jobId) {
+    await resolveApiBase();
     while (true) {
-      const pollRes = await fetchWithRetry(`/api/jobs/${jobId}`);
+      const pollRes = await fetchWithRetry(apiUrl(`/api/jobs/${jobId}`));
       if (pollRes.status === 404) {
         const notFound = new Error("Job not found or expired.");
         notFound.isNotFound = true;
@@ -607,6 +647,7 @@
     setEngineStatus("Uploading & Splitting...");
 
     try {
+      await resolveApiBase();
       const formData = new FormData();
       formData.append("model", modeSelect.value);
       let endpoint = "/api/split";
@@ -617,7 +658,7 @@
         endpoint = `/api/jobs/${currentJobId}/resplit`;
       }
 
-      const uploadRes = await fetch(endpoint, {
+      const uploadRes = await fetch(apiUrl(endpoint), {
         method: "POST",
         body: formData,
       });
@@ -713,7 +754,7 @@
         90 + ((i + 1) / stemItems.length) * 9,
         `Loading ${label} (${i + 1}/${stemItems.length}) into mixer...`
       );
-      const res = await fetchWithRetry(item.url);
+      const res = await fetchWithRetry(apiUrl(item.url));
       if (!res.ok) throw new Error(`Failed to fetch stem ${item.id}`);
       const buf = await res.arrayBuffer();
       const decoded = await ctx.decodeAudioData(buf);
@@ -1119,7 +1160,7 @@
     const br = exportQuality.value;
     const sr = exportSampleRate.value;
     const a = document.createElement("a");
-    a.href = `${stem.url}?download=1&fmt=${encodeURIComponent(fmt)}&bitrate=${encodeURIComponent(br)}&sr=${encodeURIComponent(sr)}`;
+    a.href = apiUrl(`${stem.url}?download=1&fmt=${encodeURIComponent(fmt)}&bitrate=${encodeURIComponent(br)}&sr=${encodeURIComponent(sr)}`);
     a.download = `${sourceFileName}_${stem.id}.${fmt}`;
     document.body.appendChild(a);
     a.click();
@@ -1244,7 +1285,7 @@
     const sr = exportSampleRate.value;
     const stemsParam = selected.map((s) => s.id).join(",");
     const a = document.createElement("a");
-    a.href = `/api/jobs/${currentJobId}/combine?stems=${encodeURIComponent(stemsParam)}&fmt=${encodeURIComponent(fmt)}&bitrate=${encodeURIComponent(br)}&sr=${encodeURIComponent(sr)}`;
+    a.href = apiUrl(`/api/jobs/${currentJobId}/combine?stems=${encodeURIComponent(stemsParam)}&fmt=${encodeURIComponent(fmt)}&bitrate=${encodeURIComponent(br)}&sr=${encodeURIComponent(sr)}`);
     a.download = `${sourceFileName}_combined.${fmt}`;
     document.body.appendChild(a);
     a.click();
