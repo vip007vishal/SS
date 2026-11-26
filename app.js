@@ -902,8 +902,9 @@
   }
 
   function drawWaveform(canvas, audioBuffer, color) {
-    const width = (canvas.width = canvas.parentElement.clientWidth || 600);
-    const height = canvas.height;
+    const parent = canvas.parentElement;
+    const width = (canvas.width = parent.clientWidth || 600);
+    const height = (canvas.height = parent.clientHeight || 40);
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, width, height);
 
@@ -1085,7 +1086,7 @@
 
       analyser.getByteFrequencyData(freqData);
       const w = (spectrumCanvas.width = spectrumCanvas.clientWidth || 800);
-      const h = spectrumCanvas.height;
+      const h = (spectrumCanvas.height = spectrumCanvas.clientHeight || 34);
       const sCtx = spectrumCanvas.getContext("2d");
       sCtx.clearRect(0, 0, w, h);
 
