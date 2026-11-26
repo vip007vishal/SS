@@ -107,6 +107,14 @@
         { value: "16", text: "16-bit Lossless" },
       ],
     },
+    dts: {
+      label: "Bitrate",
+      options: [
+        { value: "1536k", text: "1536 kbps (DTS Studio Master)" },
+        { value: "768k", text: "768 kbps (DTS Core)" },
+        { value: "512k", text: "512 kbps (High)" },
+      ],
+    },
     mp3: {
       label: "Bitrate",
       options: [
@@ -120,6 +128,7 @@
     m4a: {
       label: "Bitrate",
       options: [
+        { value: "512k", text: "512 kbps (Ultra)" },
         { value: "320k", text: "320 kbps (Extreme)" },
         { value: "256k", text: "256 kbps (High)" },
         { value: "192k", text: "192 kbps (Standard)" },
@@ -130,9 +139,11 @@
     ogg: {
       label: "Bitrate",
       options: [
+        { value: "512k", text: "512 kbps (Ultra)" },
         { value: "320k", text: "320 kbps (Extreme)" },
-        { value: "192k", text: "192 kbps (High)" },
-        { value: "128k", text: "128 kbps (Standard)" },
+        { value: "256k", text: "256 kbps (High)" },
+        { value: "192k", text: "192 kbps (Standard)" },
+        { value: "128k", text: "128 kbps (Medium)" },
         { value: "64k", text: "64 kbps (Low / Small)" },
       ],
     },

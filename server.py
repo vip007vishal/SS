@@ -361,6 +361,7 @@ def resplit_job(job_id: str, model: str = Form("htdemucs")):
 _VALID_FORMATS = {
     "wav": ("audio/wav", "wav"),
     "flac": ("audio/flac", "flac"),
+    "dts": ("audio/vnd.dts", "dts"),
     "mp3": ("audio/mpeg", "mp3"),
     "m4a": ("audio/mp4", "m4a"),
     "ogg": ("audio/ogg", "ogg"),
@@ -372,6 +373,10 @@ def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, t
     info = sf.info(str(src_wav))
     orig_sr = info.samplerate
     out_sr = target_sr or orig_sr
+
+    # DTS Coherent Acoustics core supports 44.1 kHz and 48 kHz
+    if fmt == "dts" and out_sr not in (44100, 48000):
+        out_sr = 48000 if out_sr > 44100 else 44100
 
     data, _ = sf.read(str(src_wav), dtype="float32", always_2d=True)
     if out_sr != orig_sr:
@@ -401,11 +406,12 @@ def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, t
     else:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         codec_map = {
+            "dts": ["-c:a", "dca", "-strict", "-2", "-f", "dts"],
             "mp3": ["-c:a", "libmp3lame", "-compression_level", "0"],
             "m4a": ["-c:a", "aac", "-aac_coder", "twoloop", "-movflags", "+faststart"],
             "ogg": ["-c:a", "libvorbis"],
         }
-        br_val = safe_br if safe_br.endswith("k") else "192k"
+        br_val = safe_br if safe_br.endswith("k") else ("1536k" if fmt == "dts" else "192k")
 
         temp_wav = export_path.with_suffix(".tmp_master.wav")
         try:
@@ -436,7 +442,7 @@ def _sanitize_export_params(fmt: str, bitrate: str, sr: int):
         raise HTTPException(status_code=400, detail="Unsupported format")
     allowed_srs = {0, 22050, 44100, 48000, 96000}
     target_sr = sr if sr in allowed_srs else 0
-    safe_br = bitrate if re.match(r"^(32f|24|16|320k|256k|192k|128k|64k)$", bitrate) else "192k"
+    safe_br = bitrate if re.match(r"^(32f|24|16|1536k|768k|512k|384k|320k|256k|192k|128k|64k)$", bitrate) else "192k"
     return fmt, safe_br, target_sr
 
 
