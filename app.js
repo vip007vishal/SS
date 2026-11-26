@@ -58,7 +58,7 @@
   const metaChannels = $("metaChannels");
   const metaDuration = $("metaDuration");
   const modeSelect = $("modeSelect");
-  const bitDepthSelect = $("bitDepthSelect");
+  const bitDepthSelect = null; // unused — export handled by exportQuality
   const splitBtn = $("splitBtn");
   const resetBtn = $("resetBtn");
   const progressWrap = $("progressWrap");
@@ -415,7 +415,7 @@
       const formData = new FormData();
       formData.append("file", currentFile);
       formData.append("model", modeSelect.value);
-      formData.append("bit_depth", bitDepthSelect.value);
+      formData.append("bit_depth", "32f");
 
       const uploadRes = await fetch("/api/split", {
         method: "POST",
@@ -536,15 +536,15 @@
       row.style.setProperty("--stem-color", stem.color);
 
       row.innerHTML = `
+        <input type="checkbox" class="stem-cb" data-action="select" ${stem.defaultMuted ? "" : "checked"} title="Include in batch / combined download" />
         <div class="stem-left">
-          <input type="checkbox" class="stem-select-cb" data-action="select" ${stem.defaultMuted ? "" : "checked"} title="Include in batch / combined download" />
           <button type="button" class="stem-play-btn" data-action="track-play" title="Play / Pause ${stem.name}">
             ${ICON_PLAY}
           </button>
           <div class="stem-info">
-            <div class="stem-title-row">
+            <div class="stem-name-row">
               <span class="stem-name">${stem.name}</span>
-              <div class="stem-ms-controls">
+              <div class="ms-group">
                 <button type="button" class="ms-btn ${stem.defaultMuted ? "mute-active" : ""}" data-action="mute" title="Mute">M</button>
                 <button type="button" class="ms-btn" data-action="solo" title="Solo">S</button>
               </div>
@@ -553,17 +553,17 @@
           </div>
         </div>
 
-        <div class="stem-wave-wrap" title="Click anywhere to seek">
-          <canvas class="stem-wave-canvas" height="58"></canvas>
+        <div class="stem-wave-wrap" title="Click to seek">
+          <canvas class="stem-wave-canvas" height="54"></canvas>
           <div class="stem-playhead"></div>
         </div>
 
-        <div class="stem-actions">
+        <div class="stem-controls">
           <div class="stem-vol-row">
             <input type="range" min="0" max="150" value="100" data-action="volume" aria-label="${stem.name} volume" />
-            <span class="mono vol-readout">100%</span>
+            <span class="mono stem-vol-val">100%</span>
           </div>
-          <button type="button" class="btn btn-download" data-action="download" title="Download stem">
+          <button type="button" class="btn-dl" data-action="download" title="Download stem">
             ${ICON_DOWNLOAD}
             <span>${exportFormat.value.toUpperCase()}</span>
           </button>
@@ -578,7 +578,7 @@
       const muteBtn = row.querySelector('[data-action="mute"]');
       const soloBtn = row.querySelector('[data-action="solo"]');
       const volSlider = row.querySelector('[data-action="volume"]');
-      const volReadout = row.querySelector(".vol-readout");
+      const volReadout = row.querySelector(".mono.stem-vol-val, .mono.vol-readout");
       const downloadBtn = row.querySelector('[data-action="download"]');
 
       stemState[stem.id] = {
