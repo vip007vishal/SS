@@ -93,8 +93,9 @@ body {
 }
 
 .landing-logo {
-  height: 64px;
+  height: 92px;
   width: auto;
+  max-width: 100%;
   display: block;
   object-fit: contain;
 }
@@ -1220,7 +1221,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 @media (max-width: 640px) {
-  .landing-logo { height: 40px; }
+  .landing-logo { height: 64px; }
   .dropzone { padding: 30px 18px; }
   .dz-title { font-size: 20px; }
   .sidebar-scroll {
