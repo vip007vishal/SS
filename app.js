@@ -48,6 +48,8 @@
   // =========================================================================
   const $ = (id) => document.getElementById(id);
 
+  const landingScreen = $("landingScreen");
+  const workspaceScreen = $("workspaceScreen");
   const dropzone = $("dropzone");
   const fileInput = $("fileInput");
   const browseBtn = $("browseBtn");
@@ -57,6 +59,7 @@
   const metaRate = $("metaRate");
   const metaChannels = $("metaChannels");
   const metaDuration = $("metaDuration");
+  const metaFormat = $("metaFormat");
   const modeSelect = $("modeSelect");
   const bitDepthSelect = null; // unused — export handled by exportQuality
   const splitBtn = $("splitBtn");
@@ -65,6 +68,7 @@
   const progressStage = $("progressStage");
   const progressPct = $("progressPct");
   const progressFill = $("progressFill");
+  const stemsSummary = $("stemsSummary");
   const engineStatus = $("engineStatus");
 
   const mixerPanel = $("mixerPanel");
@@ -318,6 +322,22 @@
     return name.replace(/\.[^/.]+$/, "");
   }
 
+  function getFileFormatLabel(name) {
+    const m = /\.([^/.]+)$/.exec(name || "");
+    return m ? m[1].toUpperCase() : "AUDIO";
+  }
+
+  function showScreen(screen) {
+    const isWorkspace = screen === "workspace";
+    if (landingScreen) landingScreen.hidden = isWorkspace;
+    if (workspaceScreen) workspaceScreen.hidden = !isWorkspace;
+    if (!isWorkspace) {
+      if (dropzone) dropzone.hidden = false;
+      if (progressWrap) progressWrap.hidden = true;
+      if (mixerPanel) mixerPanel.hidden = true;
+    }
+  }
+
   function setProgress(pct, stageText) {
     progressWrap.hidden = false;
     progressFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
@@ -366,12 +386,15 @@
     currentFile = file;
     sourceFileName = stripExtension(file.name);
 
-    dropzone.hidden = true;
+    showScreen("workspace");
     controlsBar.hidden = false;
     metaName.textContent = file.name;
+    metaName.title = file.name;
+    if (metaFormat) metaFormat.textContent = getFileFormatLabel(file.name);
     metaRate.textContent = "Detecting...";
     metaChannels.textContent = "Detecting...";
     metaDuration.textContent = "Detecting...";
+    if (stemsSummary) stemsSummary.textContent = "Analyzing audio and preparing stem separation…";
 
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -575,7 +598,11 @@
 
     splitBtn.disabled = true;
     resetBtn.disabled = true;
+    downloadAllBtn.disabled = true;
+    downloadCombinedBtn.disabled = true;
+    showScreen("workspace");
     mixerPanel.hidden = true;
+    if (stemsSummary) stemsSummary.textContent = "Separating audio stems with Demucs…";
     setProgress(3, currentFile ? "Uploading audio to Demucs neural backend..." : "Re-running Demucs neural separation...");
     setEngineStatus("Uploading & Splitting...");
 
@@ -611,10 +638,14 @@
       console.error(err);
       progressWrap.hidden = true;
       setEngineStatus("Separation Error");
+      if (stemsSummary) stemsSummary.textContent = `Separation failed: ${err.message}`;
       alert(`Separation failed: ${err.message}\n\nMake sure the Python server (server.py) is running.`);
     } finally {
       splitBtn.disabled = false;
       resetBtn.disabled = false;
+      const hasStems = activeStems.length > 0 && !mixerPanel.hidden;
+      downloadAllBtn.disabled = !hasStems;
+      downloadCombinedBtn.disabled = !hasStems;
     }
   }
 
@@ -633,14 +664,19 @@
       modeSelect._rxSync?.();
     }
 
-    dropzone.hidden = true;
+    showScreen("workspace");
     controlsBar.hidden = false;
     metaName.textContent = saved.fileName || "Restored Track";
+    metaName.title = saved.fileName || "Restored Track";
+    if (metaFormat) metaFormat.textContent = getFileFormatLabel(saved.fileName);
     metaRate.textContent = "Restoring...";
     metaChannels.textContent = "Restoring...";
     metaDuration.textContent = "Restoring...";
     splitBtn.disabled = true;
     resetBtn.disabled = true;
+    downloadAllBtn.disabled = true;
+    downloadCombinedBtn.disabled = true;
+    if (stemsSummary) stemsSummary.textContent = "Restoring previous stem separation session…";
     setProgress(92, "Restoring separated stems...");
     setEngineStatus("Restoring Session...");
 
@@ -652,14 +688,14 @@
       console.warn("Could not restore previous session:", err);
       clearJobSession();
       currentJobId = null;
-      progressWrap.hidden = true;
-      controlsBar.hidden = true;
-      mixerPanel.hidden = true;
-      dropzone.hidden = false;
+      showScreen("landing");
       checkBackend();
     } finally {
       splitBtn.disabled = false;
       resetBtn.disabled = false;
+      const hasStems = activeStems.length > 0 && !mixerPanel.hidden;
+      downloadAllBtn.disabled = !hasStems;
+      downloadCombinedBtn.disabled = !hasStems;
     }
   }
 
@@ -848,10 +884,20 @@
       });
 
       stemsList.appendChild(row);
-      drawWaveform(waveCanvas, stemBuffers[stem.id], stem.color);
     }
 
     mixerPanel.hidden = false;
+    for (const stem of activeStems) {
+      const st = stemState[stem.id];
+      if (st?.waveCanvas && stemBuffers[stem.id]) {
+        drawWaveform(st.waveCanvas, stemBuffers[stem.id], stem.color);
+      }
+    }
+    if (stemsSummary) {
+      stemsSummary.textContent = `${activeStems.length} stems ready · Select tracks for batch or combined export · Click waveform to seek`;
+    }
+    downloadAllBtn.disabled = false;
+    downloadCombinedBtn.disabled = false;
     updateStemGains();
   }
 
@@ -1118,10 +1164,8 @@
     currentFile = null;
     stemBuffers = {};
     activeStems = [];
-    controlsBar.hidden = true;
-    mixerPanel.hidden = true;
-    progressWrap.hidden = true;
-    dropzone.hidden = false;
+    stemsList.innerHTML = "";
+    showScreen("landing");
     checkBackend();
   });
 

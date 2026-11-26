@@ -8,193 +8,216 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
-  <div class="app-shell">
 
-    <!-- ── Application Header ──────────────────────────────── -->
-    <header class="topbar">
-      <div class="brand">
-        <img src="resonix.png" alt="RESONIX" class="brand-logo" />
-        <span class="brand-divider" aria-hidden="true"></span>
-        <p class="subtitle">Professional Audio Stem Separation</p>
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       SCREEN 01 — AUDIO IMPORT LANDING
+       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <main class="landing-screen" id="landingScreen">
+    <div class="landing-inner">
+      <div class="landing-brand">
+        <img src="resonix.png" alt="RESONIX" class="landing-logo" />
       </div>
-    </header>
 
-    <!-- ── Audio Import & Session Bar ──────────────────────── -->
-    <section class="panel upload-panel" id="uploadPanel" aria-label="Audio Import">
-      <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden />
+      <section class="landing-upload-wrap" id="uploadPanel" aria-label="Audio Import">
+        <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden />
 
-      <!-- Import Surface -->
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Import audio file">
-        <div class="dz-content">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Import audio file">
           <div class="dz-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </div>
+
           <div class="dz-copy">
-            <h2 class="dz-title">Import Audio Track</h2>
-            <p class="dz-sub">Drop a file here or browse from disk for automatic neural stem separation · MP3, WAV, FLAC, OGG, M4A, AAC</p>
+            <h1 class="dz-title">Separate your sound. Explore every layer.</h1>
+            <p class="dz-sub">Upload an audio track and isolate its individual musical components with AI-powered stem separation.</p>
           </div>
+
+          <div class="dz-actions">
+            <button class="btn btn-primary btn-lg" id="browseBtn" type="button">Choose Audio File</button>
+            <button class="btn btn-secondary btn-lg" id="demoBtn" type="button">Load Demo</button>
+          </div>
+
+          <p class="dz-formats">Supported formats: MP3, WAV, FLAC, OGG, M4A, AAC</p>
         </div>
-        <div class="dz-actions">
-          <button class="btn btn-primary" id="browseBtn" type="button">Choose Audio File</button>
-          <button class="btn btn-secondary" id="demoBtn" type="button">Load Demo</button>
-        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       SCREEN 02 — PROFESSIONAL AUDIO WORKSPACE
+       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+  <div class="workspace-screen" id="workspaceScreen" hidden>
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar" aria-label="Track, Separation and Export Controls">
+      <div class="sidebar-brand">
+        <img src="resonix.png" alt="RESONIX" class="sidebar-logo" />
+        <span class="sidebar-tagline">PROFESSIONAL AUDIO STUDIO</span>
       </div>
 
-      <!-- Track Metadata & Model Bar -->
-      <div class="meta-strip" id="controlsBar" hidden>
-        <div class="meta-group">
-          <div class="meta-item meta-file">
-            <span class="meta-label">Track</span>
-            <span class="meta-value" id="metaName">—</span>
+      <div class="sidebar-scroll">
+        <!-- CURRENT TRACK -->
+        <section class="sb-section" id="controlsBar" aria-label="Current Track">
+          <h2 class="sb-heading">CURRENT TRACK</h2>
+          <div class="track-meta-list">
+            <div class="track-meta-row track-meta-name-row">
+              <span class="tm-label">File</span>
+              <span class="tm-value tm-filename" id="metaName" title="">—</span>
+            </div>
+            <div class="track-meta-row">
+              <span class="tm-label">Duration</span>
+              <span class="tm-value mono" id="metaDuration">—</span>
+            </div>
+            <div class="track-meta-row">
+              <span class="tm-label">Sample Rate</span>
+              <span class="tm-value mono" id="metaRate">—</span>
+            </div>
+            <div class="track-meta-row">
+              <span class="tm-label">Channels</span>
+              <span class="tm-value mono" id="metaChannels">—</span>
+            </div>
+            <div class="track-meta-row">
+              <span class="tm-label">Format</span>
+              <span class="tm-value mono" id="metaFormat">—</span>
+            </div>
           </div>
-          <div class="meta-sep" aria-hidden="true"></div>
-          <div class="meta-item">
-            <span class="meta-label">Sample Rate</span>
-            <span class="meta-value mono" id="metaRate">—</span>
-          </div>
-          <div class="meta-sep" aria-hidden="true"></div>
-          <div class="meta-item">
-            <span class="meta-label">Channels</span>
-            <span class="meta-value mono" id="metaChannels">—</span>
-          </div>
-          <div class="meta-sep" aria-hidden="true"></div>
-          <div class="meta-item">
-            <span class="meta-label">Duration</span>
-            <span class="meta-value mono" id="metaDuration">—</span>
-          </div>
-        </div>
+        </section>
 
-        <div class="meta-controls">
-          <label class="meta-sel">
-            <span class="meta-label">Model</span>
+        <!-- SEPARATION -->
+        <section class="sb-section" aria-label="Separation Settings">
+          <h2 class="sb-heading">SEPARATION</h2>
+          <div class="sb-field">
+            <label class="sb-label" for="modeSelect">Demucs Model</label>
             <select id="modeSelect" aria-label="Separation Model">
-              <option value="htdemucs_6s" selected>HTDemucs 6-Stem (Vocals, Drums, Bass, Guitar, Piano, Other)</option>
-              <option value="htdemucs_ft">HTDemucs Fine-Tuned 4-Stem (Highest Accuracy)</option>
+              <option value="htdemucs_6s" selected>HTDemucs 6-Stem</option>
+              <option value="htdemucs_ft">HTDemucs Fine-Tuned 4-Stem</option>
               <option value="htdemucs">HTDemucs Fast 4-Stem</option>
             </select>
-          </label>
-          <div class="meta-actions">
-            <button class="btn btn-secondary btn-sm" id="splitBtn" type="button">Re-Split</button>
-            <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">New File</button>
+          </div>
+          <button class="btn btn-secondary btn-full" id="splitBtn" type="button">Re-Split Track</button>
+        </section>
+
+        <!-- EXPORT SETTINGS -->
+        <section class="sb-section" aria-label="Export Settings">
+          <h2 class="sb-heading">EXPORT SETTINGS</h2>
+          <div class="sb-field">
+            <label class="sb-label" for="exportFormat">Format</label>
+            <select id="exportFormat" aria-label="Export Format">
+              <option value="wav" selected>WAV — Lossless</option>
+              <option value="flac">FLAC — Lossless Compressed</option>
+              <option value="mp3">MP3 — MPEG Layer-3</option>
+              <option value="m4a">M4A — AAC</option>
+              <option value="ogg">OGG — Vorbis</option>
+            </select>
+          </div>
+          <div class="sb-field">
+            <label class="sb-label" id="exportQualityLabel" for="exportQuality">Bit Depth</label>
+            <select id="exportQuality" aria-label="Export Quality"></select>
+          </div>
+          <div class="sb-field">
+            <label class="sb-label" for="exportSampleRate">Sample Rate</label>
+            <select id="exportSampleRate" aria-label="Export Sample Rate">
+              <option value="0" selected>Native</option>
+              <option value="96000">96 kHz</option>
+              <option value="48000">48 kHz</option>
+              <option value="44100">44.1 kHz</option>
+              <option value="22050">22.05 kHz</option>
+            </select>
+          </div>
+
+          <div class="sb-download-actions">
+            <button class="btn btn-primary btn-full" id="downloadCombinedBtn" type="button">Download Combined Mix</button>
+            <button class="btn btn-secondary btn-full" id="downloadAllBtn" type="button">Download Selected Stems</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-full" id="resetBtn" type="button">+ New File</button>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN WORKSPACE -->
+    <main class="workspace-main" aria-label="Stem Separation Workspace">
+      <div class="workspace-header">
+        <div class="workspace-title-group">
+          <h1 class="workspace-title">Separated Stems</h1>
+          <p class="workspace-subtitle" id="stemsSummary">Preparing audio track…</p>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <section class="processing-view" id="progressWrap" hidden aria-live="polite">
+        <div class="processing-card">
+          <div class="processing-top">
+            <span class="processing-label">Neural Stem Separation</span>
+            <span class="mono progress-pct" id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-stage" id="progressStage">Initializing…</p>
+        </div>
+      </section>
+
+      <!-- Stem Mixer Workspace -->
+      <section class="mixer-workspace" id="mixerPanel" hidden>
+        <!-- Master Transport -->
+        <div class="transport">
+          <div class="transport-left">
+            <button class="t-btn t-play" id="playPauseBtn" type="button" title="Play / Pause (Space)" aria-label="Play or Pause">
+              <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <button class="t-btn" id="stopBtn" type="button" title="Stop" aria-label="Stop">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
+            </button>
+            <button class="t-btn" id="loopBtn" type="button" title="Toggle Loop" aria-label="Toggle Loop">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="transport-timeline">
+            <span class="mono timecode" id="currentTime">00:00.00</span>
+            <div class="seek-wrap">
+              <input type="range" id="seekSlider" class="seek-slider" min="0" max="1000" value="0" aria-label="Playback position" />
+            </div>
+            <span class="mono timecode" id="totalTime">00:00.00</span>
+          </div>
+
+          <div class="transport-right">
+            <div class="master-vol-group">
+              <span class="tm-label">Master</span>
+              <input type="range" id="masterVolume" min="0" max="150" value="100" aria-label="Master volume" />
+              <span class="mono vol-val" id="masterVolText">100%</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Processing Progress -->
-      <div class="progress-panel" id="progressWrap" hidden aria-live="polite">
-        <div class="progress-top">
-          <span class="progress-stage" id="progressStage">Initializing…</span>
-          <span class="mono progress-pct" id="progressPct">0%</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="progressFill"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Audio Workstation Mixer ─────────────────────────── -->
-    <section class="panel mixer-panel" id="mixerPanel" hidden aria-label="Stem Mixer">
-
-      <!-- Master Transport -->
-      <div class="transport">
-        <div class="transport-left">
-          <button class="t-btn t-play" id="playPauseBtn" type="button" title="Play / Pause (Space)" aria-label="Play or Pause">
-            <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-            <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          </button>
-          <button class="t-btn" id="stopBtn" type="button" title="Stop" aria-label="Stop">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
-          </button>
-          <button class="t-btn" id="loopBtn" type="button" title="Toggle Loop" aria-label="Toggle Loop">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-              <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-            </svg>
-          </button>
+        <!-- Compact Spectrum Analyzer -->
+        <div class="vis-wrap">
+          <canvas id="spectrumCanvas" height="44"></canvas>
+          <span class="vis-label mono">Spectrum</span>
         </div>
 
-        <div class="transport-timeline">
-          <span class="mono timecode" id="currentTime">00:00.00</span>
-          <div class="seek-wrap">
-            <input type="range" id="seekSlider" class="seek-slider" min="0" max="1000" value="0" aria-label="Playback position" />
-          </div>
-          <span class="mono timecode" id="totalTime">00:00.00</span>
+        <!-- Scrollable Stems List -->
+        <div class="stems-scroll">
+          <div class="stems-list" id="stemsList"></div>
         </div>
-
-        <div class="transport-right">
-          <div class="master-vol-group">
-            <span class="meta-label">Master</span>
-            <input type="range" id="masterVolume" min="0" max="150" value="100" aria-label="Master volume" />
-            <span class="mono vol-val" id="masterVolText">100%</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Spectrum Analyzer -->
-      <div class="vis-wrap">
-        <canvas id="spectrumCanvas" height="52"></canvas>
-        <span class="vis-label mono">Spectrum</span>
-      </div>
-
-      <!-- Stem Mixer Strips -->
-      <div class="stems-section">
-        <div class="stems-header">
-          <span class="section-heading">Separated Stems</span>
-          <span class="section-hint">Select stems for batch or combined export · Click waveform to seek</span>
-        </div>
-        <div class="stems-list" id="stemsList"></div>
-      </div>
-
-      <!-- Export Workspace -->
-      <div class="export-workspace">
-        <div class="export-header">
-          <span class="section-heading">Export</span>
-          <span class="section-hint">32-bit float internal processing rendered at native or custom sample rate</span>
-        </div>
-        <div class="export-bar">
-          <div class="export-fields">
-            <label class="exp-field">
-              <span class="meta-label">Format</span>
-              <select id="exportFormat" aria-label="Export Format">
-                <option value="wav" selected>WAV (Lossless)</option>
-                <option value="flac">FLAC (Lossless Compressed)</option>
-                <option value="mp3">MP3 (MPEG Layer-3)</option>
-                <option value="m4a">M4A (AAC)</option>
-                <option value="ogg">OGG (Vorbis)</option>
-              </select>
-            </label>
-            <label class="exp-field">
-              <span class="meta-label" id="exportQualityLabel">Bit Depth</span>
-              <select id="exportQuality" aria-label="Export Quality"></select>
-            </label>
-            <label class="exp-field">
-              <span class="meta-label">Sample Rate</span>
-              <select id="exportSampleRate" aria-label="Export Sample Rate">
-                <option value="0" selected>Native</option>
-                <option value="96000">96 kHz</option>
-                <option value="48000">48 kHz</option>
-                <option value="44100">44.1 kHz</option>
-                <option value="22050">22.05 kHz</option>
-              </select>
-            </label>
-          </div>
-          <div class="export-actions">
-            <button class="btn btn-secondary btn-sm" id="downloadAllBtn" type="button">Download Selected Stems</button>
-            <button class="btn btn-primary btn-sm" id="downloadCombinedBtn" type="button">Download Combined Mix</button>
-          </div>
-        </div>
-      </div>
-
-    </section>
+      </section>
+    </main>
 
   </div>
-  <script src="app.js?v=5"></script>
+
+  <script src="app.js?v=6"></script>
 </body>
 </html>
