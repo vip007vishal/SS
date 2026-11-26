@@ -1312,4 +1312,116 @@
       }
     }, 150);
   });
+
+  // =========================================================================
+  // Animated Studio Soundscape Canvas (Landing Screen)
+  // =========================================================================
+  (function initLandingBackground() {
+    const canvas = $("landingBgCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let rafId = null;
+    let t = 0;
+
+    const waves = [
+      { amp: 44, freq: 0.0042, speed: 0.018, phase: 0.0, yRatio: 0.60, color: "rgba(86, 143, 232, 0.28)", width: 1.8 },
+      { amp: 32, freq: 0.0056, speed: 0.024, phase: 1.7, yRatio: 0.62, color: "rgba(128, 174, 241, 0.20)", width: 1.3 },
+      { amp: 24, freq: 0.0072, speed: 0.014, phase: 3.1, yRatio: 0.58, color: "rgba(86, 143, 232, 0.14)", width: 1.0 },
+      { amp: 18, freq: 0.0031, speed: 0.011, phase: 4.5, yRatio: 0.50, color: "rgba(166, 177, 191, 0.08)", width: 0.9 },
+    ];
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function drawFrame() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle animated spectrum bars along the lower field
+      const barCount = Math.max(36, Math.floor(w / 22));
+      const barStep = w / barCount;
+      const baseLine = h * 0.72;
+      for (let i = 0; i < barCount; i++) {
+        const nx = i / barCount;
+        const edgeFade = Math.sin(nx * Math.PI);
+        const energy =
+          0.5 +
+          0.3 * Math.sin(i * 0.35 + t * 1.6) +
+          0.2 * Math.cos(i * 0.18 - t * 1.1);
+        const barH = Math.max(4, energy * 84 * edgeFade);
+        ctx.fillStyle = `rgba(86, 143, 232, ${(0.075 * edgeFade).toFixed(3)})`;
+        ctx.fillRect(i * barStep + barStep * 0.25, baseLine - barH, Math.max(2, barStep * 0.42), barH);
+      }
+
+      // Layered harmonic waveform ribbons
+      for (const wave of waves) {
+        const grad = ctx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0, "rgba(86, 143, 232, 0)");
+        grad.addColorStop(0.2, wave.color);
+        grad.addColorStop(0.5, wave.color);
+        grad.addColorStop(0.8, wave.color);
+        grad.addColorStop(1, "rgba(86, 143, 232, 0)");
+
+        ctx.beginPath();
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = wave.width;
+
+        const baseY = h * wave.yRatio;
+        for (let x = 0; x <= w; x += 6) {
+          const nx = x / w;
+          const env = Math.sin(nx * Math.PI);
+          const y =
+            baseY +
+            Math.sin(x * wave.freq + t * wave.speed * 60 + wave.phase) * wave.amp * env +
+            Math.cos(x * wave.freq * 0.55 - t * wave.speed * 35) * (wave.amp * 0.38) * env;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function loop() {
+      if (landingScreen && landingScreen.hidden) {
+        rafId = null;
+        return;
+      }
+      t += 0.016;
+      drawFrame();
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function start() {
+      resize();
+      if (reducedMotion) {
+        drawFrame();
+        return;
+      }
+      if (!rafId && (!landingScreen || !landingScreen.hidden)) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+
+    window.addEventListener("resize", () => {
+      if (!landingScreen || !landingScreen.hidden) {
+        resize();
+        if (reducedMotion) drawFrame();
+      }
+    });
+
+    if (landingScreen) {
+      const obs = new MutationObserver(() => {
+        if (!landingScreen.hidden) start();
+      });
+      obs.observe(landingScreen, { attributes: true, attributeFilter: ["hidden"] });
+    }
+
+    start();
+  })();
 })();

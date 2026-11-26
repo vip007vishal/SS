@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 </head>
 <body>
 
@@ -16,46 +16,10 @@
        SCREEN 01 — AUDIO IMPORT LANDING
        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <main class="landing-screen" id="landingScreen">
-    <!-- Layered Studio Soundscape Background -->
+    <!-- Animated Studio Soundscape Background -->
     <div class="landing-bg" aria-hidden="true">
-      <div class="landing-bg-photo"></div>
-      <div class="landing-bg-overlay"></div>
       <div class="landing-glow"></div>
-      <svg class="soundscape-svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <linearGradient id="waveFadeBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#568FE8" stop-opacity="0" />
-            <stop offset="25%" stop-color="#568FE8" stop-opacity="0.22" />
-            <stop offset="50%" stop-color="#80AEF1" stop-opacity="0.34" />
-            <stop offset="75%" stop-color="#568FE8" stop-opacity="0.22" />
-            <stop offset="100%" stop-color="#568FE8" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="waveFadeSubtle" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#A6B1BF" stop-opacity="0" />
-            <stop offset="50%" stop-color="#A6B1BF" stop-opacity="0.14" />
-            <stop offset="100%" stop-color="#A6B1BF" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-
-        <!-- Vinyl / acoustic arc grooves -->
-        <g fill="none" stroke="rgba(86, 143, 232, 0.055)" stroke-width="1">
-          <circle cx="800" cy="450" r="340" />
-          <circle cx="800" cy="450" r="430" />
-          <circle cx="800" cy="450" r="530" />
-          <circle cx="800" cy="450" r="640" />
-        </g>
-
-        <!-- Subtle horizon grid line -->
-        <line x1="0" y1="540" x2="1600" y2="540" stroke="rgba(255,255,255,0.035)" stroke-width="1" />
-
-        <!-- Flowing layered audio waveforms -->
-        <g class="soundscape-waves" fill="none">
-          <path d="M-120,540 C120,420 260,640 480,520 C700,400 840,650 1060,510 C1280,370 1440,610 1720,520" stroke="url(#waveFadeBlue)" stroke-width="1.8" />
-          <path d="M-120,540 C140,610 300,450 520,555 C740,660 900,430 1120,545 C1340,660 1480,460 1720,540" stroke="url(#waveFadeBlue)" stroke-width="1.2" opacity="0.7" />
-          <path d="M-120,540 C180,480 340,590 560,505 C780,420 920,600 1140,515 C1360,430 1500,580 1720,530" stroke="url(#waveFadeSubtle)" stroke-width="1" />
-          <path d="M-120,470 C180,390 380,550 620,460 C860,370 1020,540 1260,455 C1460,385 1580,500 1720,465" stroke="url(#waveFadeSubtle)" stroke-width="0.9" opacity="0.55" />
-        </g>
-      </svg>
+      <canvas id="landingBgCanvas" class="landing-bg-canvas"></canvas>
       <div class="landing-vignette"></div>
     </div>
 
@@ -273,6 +237,6 @@
 
   </div>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
