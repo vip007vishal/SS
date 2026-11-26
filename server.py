@@ -368,46 +368,66 @@ _VALID_FORMATS = {
 
 
 def _transcode_audio(src_wav: Path, export_path: Path, fmt: str, safe_br: str, target_sr: int):
-    """Transcode a 32-bit float master WAV to the requested format, bitrate/depth, and sample rate."""
+    """Transcode a 32-bit float master WAV to maximum-fidelity output in the requested format."""
     info = sf.info(str(src_wav))
     orig_sr = info.samplerate
     out_sr = target_sr or orig_sr
 
+    data, _ = sf.read(str(src_wav), dtype="float32", always_2d=True)
+    if out_sr != orig_sr:
+        t_wav = torch.from_numpy(data.T)
+        t_wav = julius.resample_frac(t_wav, orig_sr, out_sr, zeros=32, rolloff=0.955)
+        data = t_wav.numpy().T
+
+    # Prevent digital clipping on fixed-point / lossy exports while preserving 32-bit float masters
+    if not (fmt == "wav" and safe_br == "32f"):
+        peak = float(np.max(np.abs(data)))
+        if peak > 0.99:
+            data = data * (0.99 / peak)
+
     if fmt in ("wav", "flac"):
-        data, _ = sf.read(str(src_wav), dtype="float32", always_2d=True)
-        if out_sr != orig_sr:
-            t_wav = torch.from_numpy(data.T)
-            t_wav = julius.resample_frac(t_wav, orig_sr, out_sr)
-            data = t_wav.numpy().T
         if fmt == "wav":
             subtype = "FLOAT" if safe_br == "32f" else ("PCM_24" if safe_br == "24" else "PCM_16")
         else:
             subtype = "PCM_24" if safe_br in ("32f", "24") else "PCM_16"
+
+        # Apply subtle TPDF dither before 16-bit quantization for smooth low-level tails
+        if subtype == "PCM_16":
+            rng = np.random.default_rng()
+            dither = (rng.random(data.shape, dtype=np.float32) - rng.random(data.shape, dtype=np.float32)) / 32768.0
+            data = np.clip(data + dither, -1.0, 1.0)
+
         sf.write(str(export_path), data, out_sr, subtype=subtype)
     else:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         codec_map = {
-            "mp3": ["-c:a", "libmp3lame"],
-            "m4a": ["-c:a", "aac", "-movflags", "+faststart"],
+            "mp3": ["-c:a", "libmp3lame", "-compression_level", "0"],
+            "m4a": ["-c:a", "aac", "-aac_coder", "twoloop", "-movflags", "+faststart"],
             "ogg": ["-c:a", "libvorbis"],
         }
         br_val = safe_br if safe_br.endswith("k") else "192k"
-        cmd = [
-            ffmpeg_exe,
-            "-y",
-            "-v", "error",
-            "-i", str(src_wav),
-            "-ar", str(out_sr),
-            *codec_map[fmt],
-            "-b:a", br_val,
-            str(export_path),
-        ]
-        proc = subprocess.run(cmd, capture_output=True)
-        if proc.returncode != 0 or not export_path.exists():
-            raise HTTPException(
-                status_code=500,
-                detail=f"Export failed: {proc.stderr.decode('utf-8', 'ignore')}",
-            )
+
+        temp_wav = export_path.with_suffix(".tmp_master.wav")
+        try:
+            sf.write(str(temp_wav), data, out_sr, subtype="FLOAT")
+            cmd = [
+                ffmpeg_exe,
+                "-y",
+                "-v", "error",
+                "-i", str(temp_wav),
+                "-ar", str(out_sr),
+                *codec_map[fmt],
+                "-b:a", br_val,
+                str(export_path),
+            ]
+            proc = subprocess.run(cmd, capture_output=True)
+            if proc.returncode != 0 or not export_path.exists():
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Export failed: {proc.stderr.decode('utf-8', 'ignore')}",
+                )
+        finally:
+            temp_wav.unlink(missing_ok=True)
 
 
 def _sanitize_export_params(fmt: str, bitrate: str, sr: int):
