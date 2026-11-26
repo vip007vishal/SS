@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent
 JOBS_DIR = BASE_DIR / "_jobs"
 JOBS_DIR.mkdir(exist_ok=True)
 
-app = FastAPI(title="SONIC // SPLIT Neural Backend")
+app = FastAPI(title="RESONIX Neural Backend")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

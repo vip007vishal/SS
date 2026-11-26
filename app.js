@@ -227,7 +227,7 @@
     if (stageText) progressStage.textContent = stageText;
   }
 
-  const SESSION_KEY = "sonic_split_job";
+  const SESSION_KEY = "resonix_job";
 
   function saveJobSession(jobId, fileName, model) {
     try {
