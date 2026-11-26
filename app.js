@@ -270,16 +270,20 @@
   // =========================================================================
   // Backend Health Check
   // =========================================================================
+  function setEngineStatus(text) {
+    if (engineStatus) engineStatus.textContent = text;
+  }
+
   async function checkBackend() {
     try {
       const res = await fetch("/api/health");
       if (res.ok) {
         const data = await res.json();
-        engineStatus.textContent = `Demucs AI Ready (${String(data.device || "cpu").toUpperCase()})`;
+        setEngineStatus(`Demucs AI Ready (${String(data.device || "cpu").toUpperCase()})`);
         return;
       }
     } catch (_) {}
-    engineStatus.textContent = "Backend Offline — Run server.py";
+    setEngineStatus("Backend Offline — Run server.py");
   }
   checkBackend();
 
@@ -573,7 +577,7 @@
     resetBtn.disabled = true;
     mixerPanel.hidden = true;
     setProgress(3, currentFile ? "Uploading audio to Demucs neural backend..." : "Re-running Demucs neural separation...");
-    engineStatus.textContent = "Uploading & Splitting...";
+    setEngineStatus("Uploading & Splitting...");
 
     try {
       const formData = new FormData();
@@ -602,11 +606,11 @@
       await pollAndLoadJob(job_id);
 
       progressWrap.hidden = true;
-      engineStatus.textContent = "Demucs Stems Ready";
+      setEngineStatus("Demucs Stems Ready");
     } catch (err) {
       console.error(err);
       progressWrap.hidden = true;
-      engineStatus.textContent = "Separation Error";
+      setEngineStatus("Separation Error");
       alert(`Separation failed: ${err.message}\n\nMake sure the Python server (server.py) is running.`);
     } finally {
       splitBtn.disabled = false;
@@ -638,12 +642,12 @@
     splitBtn.disabled = true;
     resetBtn.disabled = true;
     setProgress(92, "Restoring separated stems...");
-    engineStatus.textContent = "Restoring Session...";
+    setEngineStatus("Restoring Session...");
 
     try {
       await pollAndLoadJob(saved.jobId);
       progressWrap.hidden = true;
-      engineStatus.textContent = "Demucs Stems Ready";
+      setEngineStatus("Demucs Stems Ready");
     } catch (err) {
       console.warn("Could not restore previous session:", err);
       clearJobSession();
