@@ -148,7 +148,7 @@ def run_separation_job(job_id: str, input_path: Path, model_name: str, bit_depth
         # Resample to model_sr for inference if needed
         if orig_sr != model_sr:
             job["stage"] = f"Resampling {orig_sr} Hz -> {model_sr} Hz for neural inference..."
-            mix_in = julius.resample_frac(wav_stereo, orig_sr, model_sr)
+            mix_in = julius.resample_frac(wav_stereo, orig_sr, model_sr, zeros=32, rolloff=0.955)
         else:
             mix_in = wav_stereo
 
@@ -159,33 +159,56 @@ def run_separation_job(job_id: str, input_path: Path, model_name: str, bit_depth
         mix_norm = (mix_in - ref_mean) / ref_std
 
         total_samples = mix_norm.shape[-1]
+        num_shifts = 4 if device == "cuda" else 2
         job["progress"] = 20
-        job["stage"] = f"Running Demucs ({model_name}) on {device.upper()}..."
+        job["stage"] = f"Running Demucs ({model_name}, {num_shifts}x shift-equivariant) on {device.upper()}..."
+
+        cb_state = {"shift_idx": 0, "prev_off": 0, "prev_m": 0}
 
         def progress_cb(info: dict):
             if info.get("state") == "end":
                 num_models = max(1, info.get("models", 1))
                 m_idx = info.get("model_idx_in_bag", 0)
                 seg_off = info.get("segment_offset", 0)
+                if m_idx < cb_state["prev_m"] or (m_idx == 0 and seg_off < cb_state["prev_off"]):
+                    cb_state["shift_idx"] = min(num_shifts - 1, cb_state["shift_idx"] + 1)
+                cb_state["prev_m"] = m_idx
+                cb_state["prev_off"] = seg_off
+
                 seg_frac = min(1.0, seg_off / max(1, total_samples))
-                overall = (m_idx + seg_frac) / num_models
+                pass_frac = (m_idx + seg_frac) / num_models
+                overall = min(1.0, (cb_state["shift_idx"] + pass_frac) / num_shifts)
                 pct = int(20 + overall * 65)
                 job["progress"] = max(job["progress"], min(85, pct))
-                job["stage"] = f"Running Demucs ({model_name}) on {device.upper()}... ({int(overall * 100)}%)"
+                job["stage"] = f"Running Demucs ({model_name}, {num_shifts}x precision) on {device.upper()}... ({int(overall * 100)}%)"
 
         with torch.no_grad():
             sources = apply_model(
                 model,
                 mix_norm.unsqueeze(0).to(device),
-                shifts=1,
+                shifts=num_shifts,
                 split=True,
-                overlap=0.25,
+                overlap=0.5,
+                transition_power=1.5,
                 progress=False,
                 device=device,
                 callback=progress_cb,
             )[0]
 
         sources = sources.cpu() * ref_std + ref_mean
+
+        # Energy-weighted mix-consistency projection:
+        # Distributes any neural estimation residual proportionally to active stems
+        # so stems sum back to the exact input mix without bleeding into silent stems.
+        if sources.shape[-1] > 0:
+            residual = mix_in - sources.sum(dim=0)
+            win = min(2049, sources.shape[-1] | 1)
+            pad = win // 2
+            sq = (sources ** 2).mean(dim=1, keepdim=True)
+            local_energy = torch.nn.functional.avg_pool1d(sq, kernel_size=win, stride=1, padding=pad)
+            local_energy = local_energy[:, :, :sources.shape[-1]]
+            weights = local_energy / (local_energy.sum(dim=0, keepdim=True) + 1e-12)
+            sources = sources + weights * residual.unsqueeze(0)
 
         job["progress"] = 88
         job["stage"] = f"Rendering lossless WAV stems at {orig_sr} Hz..."
@@ -201,7 +224,7 @@ def run_separation_job(job_id: str, input_path: Path, model_name: str, bit_depth
         for idx, stem_name in enumerate(model.sources):
             stem_wav = sources[idx]
             if orig_sr != model_sr:
-                stem_wav = julius.resample_frac(stem_wav, model_sr, orig_sr)
+                stem_wav = julius.resample_frac(stem_wav, model_sr, orig_sr, zeros=32, rolloff=0.955)
             # Match exact original sample count
             if stem_wav.shape[1] > orig_samples:
                 stem_wav = stem_wav[:, :orig_samples]
