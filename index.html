@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SONIC // SPLIT — Pure Client-Side Audio Stem Separator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>SONIC <span class="accent">//</span> SPLIT</h1>
+          <p class="subtitle">Lossless Client-Side Audio Stem Separator &amp; Studio Mixer</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span class="badge badge-live" id="engineStatus">Web Audio Ready</span>
+        <span class="badge">100% Browser-Local</span>
+        <span class="badge">Lossless WAV Export</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-grid">
+      <!-- Upload & Settings Panel -->
+      <section class="panel upload-panel" id="uploadPanel">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload audio file">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.webm" hidden />
+          <div class="dropzone-content">
+            <div class="upload-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+            <h2>Drop your audio track here</h2>
+            <p>Decoded at native sample rate &amp; separated with Demucs neural AI</p>
+            <div class="format-pills" aria-hidden="true">
+              <span>MP3</span><span>WAV</span><span>FLAC</span><span>M4A</span><span>OGG</span><span>AAC</span>
+            </div>
+            <div class="dropzone-actions">
+              <button type="button" class="btn btn-primary" id="browseBtn">Choose Audio File</button>
+              <button type="button" class="btn btn-ghost" id="demoBtn">Load Synthetic Demo Track</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Info & Separation Controls -->
+        <div class="controls-bar" id="controlsBar" hidden>
+          <div class="file-meta">
+            <div class="meta-item">
+              <span class="meta-label">FILE</span>
+              <span class="meta-value" id="metaName">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">SAMPLE RATE</span>
+              <span class="meta-value mono" id="metaRate">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">CHANNELS</span>
+              <span class="meta-value mono" id="metaChannels">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">DURATION</span>
+              <span class="meta-value mono" id="metaDuration">—</span>
+            </div>
+          </div>
+
+          <div class="separation-options">
+            <label class="option-group">
+              <span>Neural Separation Model (Demucs)</span>
+              <select id="modeSelect">
+                <option value="htdemucs_6s" selected>6-Stem (Vocals, Drums, Bass, Guitar, Piano, Other)</option>
+                <option value="htdemucs_ft">4-Stem Studio Fine-Tuned (Highest Accuracy)</option>
+                <option value="htdemucs">4-Stem Fast (Vocals, Drums, Bass, Other)</option>
+              </select>
+            </label>
+
+            <label class="option-group">
+              <span>Export Bit Depth</span>
+              <select id="bitDepthSelect">
+                <option value="32f" selected>32-bit Float WAV (Studio Master)</option>
+                <option value="16">16-bit PCM WAV (CD / Standard)</option>
+              </select>
+            </label>
+
+            <button type="button" class="btn btn-accent" id="splitBtn">
+              Re-Split Stems
+            </button>
+            <button type="button" class="btn btn-ghost" id="resetBtn" title="Load another file">
+              New File
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-wrap" id="progressWrap" hidden>
+          <div class="progress-header">
+            <span id="progressStage">Initializing DSP Worker...</span>
+            <span class="mono" id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Studio Mixer & Stems Section -->
+      <section class="panel mixer-panel" id="mixerPanel" hidden>
+        <!-- Master Transport Bar -->
+        <div class="transport-bar">
+          <div class="transport-controls">
+            <button type="button" class="btn-icon btn-play" id="playPauseBtn" title="Play / Pause (Space)">
+              <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="6 4 20 12 6 20 6 4" />
+              </svg>
+              <svg id="pauseIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" hidden>
+                <rect x="6" y="4" width="4" height="16" />
+                <rect x="14" y="4" width="4" height="16" />
+              </svg>
+            </button>
+            <button type="button" class="btn-icon" id="stopBtn" title="Stop &amp; Rewind">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="5" y="5" width="14" height="14" rx="1" />
+              </svg>
+            </button>
+            <button type="button" class="btn-icon" id="loopBtn" title="Toggle Loop">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9" />
+                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <polyline points="7 23 3 19 7 15" />
+                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="timeline-wrap">
+            <span class="mono timecode" id="currentTime">00:00.00</span>
+            <input type="range" id="seekSlider" min="0" max="1000" value="0" class="seek-slider" aria-label="Playback position" />
+            <span class="mono timecode" id="totalTime">00:00.00</span>
+          </div>
+
+          <div class="master-right">
+            <div class="master-vol">
+              <span class="meta-label">MASTER</span>
+              <input type="range" id="masterVolume" min="0" max="150" value="100" aria-label="Master volume" />
+              <span class="mono vol-readout" id="masterVolText">100%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Format, Bitrate & Sample Rate Bar -->
+        <div class="export-bar">
+          <div class="export-bar-title">
+            <span class="meta-label">EXPORT SETTINGS</span>
+          </div>
+          <label class="export-field">
+            <span>Format</span>
+            <select id="exportFormat">
+              <option value="wav" selected>WAV (Lossless)</option>
+              <option value="flac">FLAC (Lossless Compressed)</option>
+              <option value="mp3">MP3 (MPEG Layer-3)</option>
+              <option value="m4a">M4A (AAC)</option>
+              <option value="ogg">OGG (Vorbis)</option>
+            </select>
+          </label>
+          <label class="export-field">
+            <span id="exportQualityLabel">Bit Depth</span>
+            <select id="exportQuality"></select>
+          </label>
+          <label class="export-field">
+            <span>Sample Rate</span>
+            <select id="exportSampleRate">
+              <option value="0" selected>Original (Native Hz)</option>
+              <option value="96000">96,000 Hz (Hi-Res Studio)</option>
+              <option value="48000">48,000 Hz (Pro Broadcast)</option>
+              <option value="44100">44,100 Hz (CD Quality)</option>
+              <option value="22050">22,050 Hz (Lo-Fi / Compact)</option>
+            </select>
+          </label>
+          <div class="export-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="downloadAllBtn">
+              Download Selected (Individual)
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="downloadCombinedBtn">
+              Download Selected (Combined)
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Master Spectrum Visualizer -->
+        <div class="visualizer-wrap">
+          <canvas id="spectrumCanvas" height="68"></canvas>
+          <div class="visualizer-label mono">MASTER REAL-TIME SPECTRUM</div>
+        </div>
+
+        <!-- Stem Tracks List -->
+        <div class="stems-list" id="stemsList">
+          <!-- Dynamically populated stem tracks -->
+        </div>
+
+        <footer class="dsp-note">
+          <strong>Quality &amp; Architecture Note:</strong> Audio is decoded at its native sample rate, separated using Meta's Hybrid Transformer <strong>Demucs</strong> neural network on the local Python backend, and returned as uncompressed lossless WAV at the exact original sample rate and channel count.
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
