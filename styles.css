@@ -742,12 +742,18 @@ body {
   pointer-events: none;
 }
 
-/* ── Fluid Non-Scrolling Stem Grid ────────────────────────── */
+/* ── DAW Multi-Track Workspace Layout ────────────────────── */
 .stems-scroll {
   flex: 1;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #0b0f14;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .stems-list {
@@ -755,40 +761,49 @@ body {
   min-height: 0;
   display: grid;
   grid-auto-rows: minmax(0, 1fr);
-  gap: 5px;
+  gap: 0;
 }
 
 .stem-row {
   min-height: 0;
   min-width: 0;
   display: grid;
-  grid-template-columns: 22px 226px minmax(0, 1fr) 224px;
+  grid-template-columns: 24px 226px minmax(0, 1fr) 224px;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-left: 3px solid var(--stem-color, var(--c-accent));
-  border-radius: var(--r-md);
-  transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+  gap: 12px;
+  padding: 0 14px;
+  background: rgba(18, 24, 33, 0.65);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 4px solid var(--stem-color, var(--c-accent));
+  border-radius: 0;
+  transition: background-color 140ms ease, opacity 140ms ease;
+}
+
+.stem-row:nth-child(even) {
+  background: rgba(14, 19, 27, 0.85);
+}
+
+.stem-row:last-child {
+  border-bottom: none;
 }
 
 .stem-row:hover {
-  background: var(--c-surface-2);
-  border-color: #364456;
+  background: rgba(28, 38, 52, 0.7);
   border-left-color: var(--stem-color, var(--c-accent));
 }
 
 .stem-row.muted {
-  opacity: 0.52;
+  opacity: 0.42;
+  filter: grayscale(25%);
 }
 
 .stem-cb {
   appearance: none;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
   border: 1.5px solid var(--c-border);
   background: var(--c-surface-2);
   cursor: pointer;
@@ -811,8 +826,8 @@ body {
 
 .stem-cb::after {
   content: "";
-  width: 9px;
-  height: 5px;
+  width: 8px;
+  height: 4.5px;
   border-left: 2px solid #0C1015;
   border-bottom: 2px solid #0C1015;
   transform: rotate(-45deg) scale(0);
@@ -832,7 +847,7 @@ body {
 .stem-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -906,7 +921,7 @@ body {
   font-size: 10px;
   font-weight: 700;
   font-family: inherit;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid var(--c-border);
   background: var(--c-surface-2);
   color: var(--c-text-2);
@@ -920,26 +935,26 @@ body {
 }
 
 .ms-btn.mute-active {
-  background: rgba(217, 98, 98, 0.18);
+  background: rgba(217, 98, 98, 0.22);
   border-color: var(--c-mute);
   color: #F2A5A5;
 }
 
 .ms-btn.solo-active {
-  background: rgba(212, 167, 74, 0.18);
+  background: rgba(212, 167, 74, 0.22);
   border-color: var(--c-solo);
   color: #F2D694;
 }
 
-/* Fluid Waveform */
+/* Fluid DAW Waveform Lane */
 .stem-wave-wrap {
   position: relative;
-  height: 100%;
-  min-height: 30px;
-  max-height: 56px;
-  background: var(--c-bg);
-  border: 1px solid var(--c-border-subtle);
-  border-radius: var(--r-sm);
+  height: calc(100% - 6px);
+  min-height: 28px;
+  max-height: 54px;
+  background: rgba(8, 12, 16, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
   overflow: hidden;
   cursor: pointer;
 }
@@ -951,7 +966,7 @@ body {
   right: 0;
   top: 50%;
   height: 1px;
-  background: rgba(240, 243, 247, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   pointer-events: none;
 }
 
@@ -966,7 +981,8 @@ body {
   top: 0;
   bottom: 0;
   width: 1.5px;
-  background: var(--c-text);
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
   pointer-events: none;
 }
 
@@ -1319,8 +1335,8 @@ input[type="range"]::-moz-range-thumb {
   .workspace-main { padding: 8px 14px; gap: 6px; }
   .transport { padding: 5px 10px; }
   .vis-wrap { height: 26px; }
-  .stems-list { gap: 4px; }
-  .stem-row { padding: 4px 10px; }
+  .stems-list { gap: 0; }
+  .stem-row { padding: 3px 10px; }
 }
 
 @media (max-width: 1120px) {
