@@ -170,6 +170,8 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeAllCustomSelects();
   });
+  window.addEventListener("resize", () => closeAllCustomSelects());
+  window.addEventListener("scroll", () => closeAllCustomSelects(), true);
 
   function enhanceSelect(selectEl) {
     if (!selectEl || selectEl.dataset.rxEnhanced) return;
@@ -224,6 +226,31 @@
       }
     };
 
+    const positionMenu = () => {
+      const rect = trigger.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      menu.style.minWidth = `${rect.width}px`;
+      menu.style.maxWidth = `${Math.min(320, vw - 16)}px`;
+      menu.style.maxHeight = "240px";
+
+      const mRect = menu.getBoundingClientRect();
+      const left = Math.max(8, Math.min(rect.left, vw - mRect.width - 8));
+      const spaceBelow = vh - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+
+      if (spaceBelow >= mRect.height || spaceBelow >= spaceAbove) {
+        menu.style.top = `${rect.bottom + 4}px`;
+        menu.style.maxHeight = `${Math.max(110, Math.min(240, spaceBelow))}px`;
+      } else {
+        const clampedH = Math.max(110, Math.min(240, spaceAbove));
+        menu.style.maxHeight = `${clampedH}px`;
+        const actualH = Math.min(mRect.height, clampedH);
+        menu.style.top = `${Math.max(8, rect.top - actualH - 4)}px`;
+      }
+      menu.style.left = `${left}px`;
+    };
+
     trigger.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -231,6 +258,7 @@
       closeAllCustomSelects(wrapper);
       wrapper.classList.toggle("open", willOpen);
       trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      if (willOpen) positionMenu();
     });
 
     selectEl.addEventListener("change", syncUI);
